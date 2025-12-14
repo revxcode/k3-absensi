@@ -1,194 +1,606 @@
-# GUI module for the application
 import csv
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog, simpledialog
+import customtkinter as ctk
+from tkinter import messagebox, filedialog, simpledialog
 from typing import Optional
 from app.services import MahasiswaService, AbsensiService
 
+# Modern color scheme
+CTK_FG_COLOR = "#ECF0F1"
+CTK_BG_COLOR = "#2C3E50"
+CTK_BUTTON_COLOR = "#3498DB"
+CTK_BUTTON_HOVER = "#2980B9"
+CTK_SUCCESS_COLOR = "#27AE60"
+CTK_ERROR_COLOR = "#E74C3C"
+CTK_WARNING_COLOR = "#F39C12"
 
-class AplikasiAbsensi:
-    # Main application GUI
+
+class AplikasiAbsensiModern:
+    # Modern application GUI using CustomTkinter
     def __init__(self, root):
         self.root = root
         self.root.title("Aplikasi Absensi - Kelompok 3")
-        self.root.geometry("600x400")
+        self.root.geometry("1000x700")
+        self.root.resizable(True, True)
 
-        # Create tabs
-        self.tabs = ttk.Notebook(root)
-        self.tabs.pack(expand=1, fill="both")
+        # Set modern theme
+        ctk.set_appearance_mode("dark")
+        ctk.set_default_color_theme("blue")
 
-        self.tab1 = ttk.Frame(self.tabs)
-        self.tab2 = ttk.Frame(self.tabs)
-        self.tab3 = ttk.Frame(self.tabs)
+        # Main container
+        main_container = ctk.CTkFrame(root, fg_color=CTK_BG_COLOR)
+        main_container.pack(side="top", fill="both", expand=True)
 
-        self.tabs.add(self.tab1, text="Isi Kehadiran")
-        self.tabs.add(self.tab2, text="Daftar Mahasiswa Baru")
-        self.tabs.add(self.tab3, text="Rekap Laporan")
+        # Header
+        header = ctk.CTkFrame(main_container, fg_color="#1A252F", height=60)
+        header.pack(fill="x", padx=0, pady=0)
+        header.pack_propagate(False)
 
-        self.setup_tab_absensi_v2()
-        self.setup_tab_daftar_v2()
-        self.setup_tab_laporan()
+        title = ctk.CTkLabel(
+            header,
+            text="📋 Aplikasi Absensi - Kelompok 3",
+            font=("Segoe UI", 20, "bold"),
+            text_color=CTK_FG_COLOR,
+        )
+        title.pack(side="left", padx=20, pady=10)
 
-        ttk.Button(self.root, text="Close App", command=self.root.destroy).pack(pady=5)
+        # Tabs
+        self.tabs = ctk.CTkTabview(main_container, fg_color=CTK_BG_COLOR)
+        self.tabs.pack(fill="both", expand=True, padx=10, pady=10)
+
+        self.tab1 = self.tabs.add("📝 Isi Kehadiran")
+        self.tab2 = self.tabs.add("👥 Daftar Mahasiswa")
+        self.tab3 = self.tabs.add("📊 Rekap Laporan")
+
+        # Setup tabs
+        self.setup_tab_absensi_modern()
+        self.setup_tab_daftar_modern()
+        self.setup_tab_laporan_modern()
+
+        # Bottom button container
+        footer = ctk.CTkFrame(main_container, fg_color="#1A252F")
+        footer.pack(fill="x", padx=10, pady=10)
+
+        close_btn = ctk.CTkButton(
+            footer,
+            text="❌ Close App",
+            command=self.root.destroy,
+            fg_color=CTK_ERROR_COLOR,
+            hover_color="#C0392B",
+            font=("Segoe UI", 12, "bold"),
+        )
+        close_btn.pack(side="right", padx=5)
 
         self.load_laporan()
 
-    def setup_tab_absensi(self):
-        # Setup attendance tab
-        frame = ttk.Frame(self.tab1, padding=20)
-        frame.pack()
+    def setup_tab_absensi_modern(self):
+        # Modern attendance tab with improved layout
+        self.tab1.configure(fg_color=CTK_BG_COLOR)
 
-        ttk.Label(frame, text="Masukkan NIM untuk Absen:", font=("Helvetica", 12)).pack(
-            pady=5
+        # Search & Filter Frame
+        filter_frame = ctk.CTkFrame(self.tab1, fg_color="#34495E", corner_radius=10)
+        filter_frame.pack(fill="x", padx=10, pady=10)
+
+        # Search
+        search_label = ctk.CTkLabel(
+            filter_frame,
+            text="🔍 Cari Nama/NIM:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
         )
+        search_label.pack(side="left", padx=10, pady=8)
 
-        self.entry_nim_absen = ttk.Entry(frame, font=("Helvetica", 14))
-        self.entry_nim_absen.pack(pady=5)
-        self.entry_nim_absen.focus()
-
-        ttk.Label(frame, text="Status Kehadiran:").pack(pady=5)
-        self.combo_status = ttk.Combobox(frame, values=["Hadir", "Izin", "Sakit"])
-        self.combo_status.current(0)
-        self.combo_status.pack(pady=5)
-
-        ttk.Button(frame, text="SUBMIT ABSENSI", command=self.proses_absen).pack(
-            pady=20
+        self.absen_search = ctk.CTkEntry(
+            filter_frame,
+            placeholder_text="Ketik NIM atau nama...",
+            width=200,
+            corner_radius=8,
         )
+        self.absen_search.pack(side="left", padx=5, pady=8)
 
-        self.lbl_info = ttk.Label(
-            frame, text="Siap menerima input...", foreground="blue"
+        search_btn = ctk.CTkButton(
+            filter_frame,
+            text="Cari",
+            command=self._absen_reload_filtered,
+            width=70,
+            fg_color=CTK_BUTTON_COLOR,
+            hover_color=CTK_BUTTON_HOVER,
         )
-        self.lbl_info.pack()
+        search_btn.pack(side="left", padx=5, pady=8)
 
-    def setup_tab_daftar(self):
-        # Setup student registration tab
-        frame = ttk.Frame(self.tab2, padding=20)
-        frame.pack()
-
-        ttk.Label(frame, text="NIM:").pack(anchor="w")
-        self.ent_reg_nim = ttk.Entry(frame, width=30)
-        self.ent_reg_nim.pack(pady=5)
-
-        ttk.Label(frame, text="Nama Lengkap:").pack(anchor="w")
-        self.ent_reg_nama = ttk.Entry(frame, width=30)
-        self.ent_reg_nama.pack(pady=5)
-
-        ttk.Label(frame, text="Jurusan/Kelas:").pack(anchor="w")
-        self.ent_reg_jurusan = ttk.Entry(frame, width=30)
-        self.ent_reg_jurusan.pack(pady=5)
-
-        ttk.Button(
-            frame, text="Simpan Data Mahasiswa", command=self.proses_daftar
-        ).pack(pady=20)
-
-    def setup_tab_laporan(self):
-        # Setup report tab
-        frame_cari = ttk.Frame(self.tab3)
-        frame_cari.pack(pady=5)
-
-        self.ent_cari = ttk.Entry(frame_cari, width=20)
-        self.ent_cari.pack(side="left", padx=5)
-
-        ttk.Button(frame_cari, text="Cari Nama/NIM", command=self.proses_cari).pack(
-            side="left"
+        # Sort
+        sort_label = ctk.CTkLabel(
+            filter_frame,
+            text="🔤 Urut:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
         )
+        sort_label.pack(side="left", padx=15, pady=8)
 
-        # Treeview table
-        columns = ("Tanggal", "Jam", "NIM", "Nama", "Ket")
-        self.tree = ttk.Treeview(self.tab3, columns=columns, show="headings")
-
-        for col in columns:
-            self.tree.heading(col, text=col)
-            self.tree.column(col, width=100)
-
-        self.tree.pack(expand=True, fill="both", padx=10, pady=10)
-
-        btn_refresh = ttk.Button(
-            self.tab3, text="Refresh Data", command=self.load_laporan
+        self.absen_sort = ctk.CTkComboBox(
+            filter_frame,
+            values=[
+                "NIM ASC",
+                "NIM DESC",
+                "Nama ASC",
+                "Nama DESC",
+                "Status ASC",
+                "Status DESC",
+            ],
+            command=lambda _: self._absen_reload_filtered(),
+            width=130,
+            corner_radius=8,
         )
-        btn_refresh.pack(pady=5)
+        self.absen_sort.set("NIM ASC")
+        self.absen_sort.pack(side="left", padx=5, pady=8)
 
-        btn_export = ttk.Button(
-            self.tab3, text="Export ke CSV", command=self.export_ke_csv
+        reset_btn = ctk.CTkButton(
+            filter_frame,
+            text="Reset",
+            command=self._absen_reset_filters,
+            width=70,
+            fg_color="#95A5A6",
+            hover_color="#7F8C8D",
         )
-        btn_export.pack(pady=5)
+        reset_btn.pack(side="left", padx=5, pady=8)
+
+        # List area with scrollbar
+        list_frame = ctk.CTkFrame(self.tab1, fg_color=CTK_BG_COLOR)
+        list_frame.pack(fill="both", expand=True, padx=10, pady=5)
+
+        self.absen_scrollable = ctk.CTkScrollableFrame(
+            list_frame,
+            fg_color="#34495E",
+            corner_radius=10,
+            label_text="Daftar Mahasiswa",
+            label_font=("Segoe UI", 12, "bold"),
+        )
+        self.absen_scrollable.pack(fill="both", expand=True)
+
+        # Store for row references
+        self.status_vars = {}
+        self.displayed_rows = []
+        self.absen_rows_frame = self.absen_scrollable
+
+        # Bottom action frame
+        action_frame = ctk.CTkFrame(self.tab1, fg_color="#34495E", corner_radius=10)
+        action_frame.pack(fill="x", padx=10, pady=10)
+
+        self.lbl_info = ctk.CTkLabel(
+            action_frame,
+            text="✓ Status default semua: Alfa",
+            text_color=CTK_SUCCESS_COLOR,
+            font=("Segoe UI", 11),
+        )
+        self.lbl_info.pack(side="left", padx=15, pady=10)
+
+        save_btn = ctk.CTkButton(
+            action_frame,
+            text="💾 Save",
+            command=self._absen_submit_all,
+            fg_color=CTK_SUCCESS_COLOR,
+            hover_color="#229954",
+            font=("Segoe UI", 12, "bold"),
+        )
+        save_btn.pack(side="right", padx=15, pady=10)
+
+        # Initial load
+        self._absen_load_rows()
+
+    def _absen_load_rows(
+        self,
+        keyword: Optional[str] = None,
+        sort_field: str = "nim",
+        sort_dir: str = "ASC",
+    ):
+        # Clear previous rows
+        for widget in self.absen_rows_frame.winfo_children():
+            widget.destroy()
+        self.status_vars.clear()
+        self.displayed_rows = []
+
+        rows = MahasiswaService.list_mahasiswa(keyword, sort_field, sort_dir)
+
+        if not rows:
+            empty_label = ctk.CTkLabel(
+                self.absen_rows_frame,
+                text="📭 Tidak ada mahasiswa",
+                text_color="#BDC3C7",
+                font=("Segoe UI", 12),
+            )
+            empty_label.pack(pady=20)
+            return
+
+        # Header
+        header_frame = ctk.CTkFrame(self.absen_rows_frame, fg_color="#2C3E50")
+        header_frame.pack(fill="x", padx=5, pady=(0, 10))
+
+        ctk.CTkLabel(
+            header_frame,
+            text="NIM",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+            width=100,
+        ).pack(side="left", padx=8, pady=8)
+        ctk.CTkLabel(
+            header_frame,
+            text="Nama",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+            width=200,
+        ).pack(side="left", padx=8, pady=8)
+        ctk.CTkLabel(
+            header_frame,
+            text="Status",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+            width=300,
+        ).pack(side="left", padx=8, pady=8)
+
+        # Data rows
+        for idx, (nim, nama, jur) in enumerate(rows):
+            var = ctk.StringVar(value="Alfa")
+            self.status_vars[nim] = var
+
+            row_frame = ctk.CTkFrame(
+                self.absen_rows_frame,
+                fg_color="#3A4D63" if idx % 2 == 0 else "#34495E",
+                corner_radius=6,
+            )
+            row_frame.pack(fill="x", padx=5, pady=3)
+
+            nim_label = ctk.CTkLabel(
+                row_frame,
+                text=nim,
+                text_color=CTK_FG_COLOR,
+                font=("Segoe UI", 10),
+                width=100,
+            )
+            nim_label.pack(side="left", padx=8, pady=10)
+
+            nama_label = ctk.CTkLabel(
+                row_frame,
+                text=nama,
+                text_color=CTK_FG_COLOR,
+                font=("Segoe UI", 10),
+                width=200,
+            )
+            nama_label.pack(side="left", padx=8, pady=10)
+
+            status_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
+            status_frame.pack(side="left", padx=8, pady=10)
+
+            for st in ["Alfa", "Hadir", "Izin", "Sakit"]:
+                rb = ctk.CTkRadioButton(
+                    status_frame,
+                    text=st,
+                    variable=var,
+                    value=st,
+                    font=("Segoe UI", 10),
+                    width=80,
+                )
+                rb.pack(side="left", padx=3)
+
+            self.displayed_rows.append(row_frame)
+
+        # Sort by status
+        sel = self.absen_sort.get()
+        if sel.startswith("Status"):
+            reverse = sel.endswith("DESC")
+            body_sorted = sorted(
+                enumerate(self.displayed_rows),
+                key=lambda x: self.status_vars[rows[x[0]][0]].get(),
+                reverse=reverse,
+            )
+            for fr in self.displayed_rows:
+                fr.pack_forget()
+            for _, fr in body_sorted:
+                fr.pack(fill="x", padx=5, pady=3)
+
+    def _absen_reset_filters(self):
+        self.absen_search.delete(0, "end")
+        self.absen_sort.set("NIM ASC")
+        self._absen_reload_filtered()
+
+    def _absen_reload_filtered(self):
+        keyword = self.absen_search.get().strip() or None
+        sel = self.absen_sort.get()
+        if sel.startswith("NIM"):
+            sort_field = "nim"
+            sort_dir = "DESC" if sel.endswith("DESC") else "ASC"
+        elif sel.startswith("Nama"):
+            sort_field = "nama"
+            sort_dir = "DESC" if sel.endswith("DESC") else "ASC"
+        else:
+            sort_field = "nim"
+            sort_dir = "ASC"
+        self._absen_load_rows(keyword, sort_field, sort_dir)
+
+    def _absen_submit_all(self):
+        status_map = {}
+        for nim in self.status_vars.keys():
+            status_map[nim] = self.status_vars[nim].get()
+
+        if not status_map:
+            messagebox.showwarning("Kosong", "Tidak ada mahasiswa untuk disubmit.")
+            return
+
+        count = AbsensiService.apply_statuses_for_today(status_map)
+        self.lbl_info.configure(
+            text=f"✓ Sukses submit {count} status.", text_color=CTK_SUCCESS_COLOR
+        )
+        self.load_laporan()
+
+    def setup_tab_daftar_modern(self):
+        # Modern registration & deletion tab
+        self.tab2.configure(fg_color=CTK_BG_COLOR)
+
+        # Add student section
+        add_frame = ctk.CTkFrame(self.tab2, fg_color="#34495E", corner_radius=10)
+        add_frame.pack(fill="x", padx=10, pady=10)
+
+        add_title = ctk.CTkLabel(
+            add_frame,
+            text="➕ Tambah Mahasiswa Baru",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 13, "bold"),
+        )
+        add_title.pack(pady=10)
+
+        # Form inputs
+        form_container = ctk.CTkFrame(add_frame, fg_color="transparent")
+        form_container.pack(fill="x", padx=20, pady=10)
+
+        # NIM
+        ctk.CTkLabel(
+            form_container,
+            text="NIM:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w", pady=(10, 2))
+        self.ent_reg_nim = ctk.CTkEntry(
+            form_container,
+            placeholder_text="Masukkan NIM...",
+            corner_radius=8,
+        )
+        self.ent_reg_nim.pack(fill="x", pady=5)
+
+        # Nama
+        ctk.CTkLabel(
+            form_container,
+            text="Nama Lengkap:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w", pady=(10, 2))
+        self.ent_reg_nama = ctk.CTkEntry(
+            form_container,
+            placeholder_text="Masukkan nama...",
+            corner_radius=8,
+        )
+        self.ent_reg_nama.pack(fill="x", pady=5)
+
+        # Jurusan
+        ctk.CTkLabel(
+            form_container,
+            text="Jurusan/Kelas:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w", pady=(10, 2))
+        self.ent_reg_jurusan = ctk.CTkEntry(
+            form_container,
+            placeholder_text="Masukkan jurusan...",
+            corner_radius=8,
+        )
+        self.ent_reg_jurusan.pack(fill="x", pady=5)
+
+        # Save button
+        save_btn = ctk.CTkButton(
+            form_container,
+            text="💾 Simpan Data Mahasiswa",
+            command=self.proses_daftar,
+            fg_color=CTK_BUTTON_COLOR,
+            hover_color=CTK_BUTTON_HOVER,
+            font=("Segoe UI", 12, "bold"),
+        )
+        save_btn.pack(fill="x", pady=15)
+
+        # Separator
+        sep = ctk.CTkFrame(self.tab2, fg_color="#7F8C8D", height=2)
+        sep.pack(fill="x", padx=20, pady=10)
+
+        # Delete student section
+        del_frame = ctk.CTkFrame(self.tab2, fg_color="#34495E", corner_radius=10)
+        del_frame.pack(fill="x", padx=10, pady=10)
+
+        del_title = ctk.CTkLabel(
+            del_frame,
+            text="🗑️ Hapus Mahasiswa",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 13, "bold"),
+        )
+        del_title.pack(pady=10)
+
+        del_container = ctk.CTkFrame(del_frame, fg_color="transparent")
+        del_container.pack(fill="x", padx=20, pady=10)
+
+        ctk.CTkLabel(
+            del_container,
+            text="Masukkan NIM:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(anchor="w", pady=(10, 2))
+
+        self.ent_del_nim = ctk.CTkEntry(
+            del_container,
+            placeholder_text="Masukkan NIM yang akan dihapus...",
+            corner_radius=8,
+        )
+        self.ent_del_nim.pack(fill="x", pady=5)
+
+        del_btn = ctk.CTkButton(
+            del_container,
+            text="❌ Delete Mahasiswa",
+            command=self.proses_delete_mahasiswa,
+            fg_color=CTK_ERROR_COLOR,
+            hover_color="#C0392B",
+            font=("Segoe UI", 12, "bold"),
+        )
+        del_btn.pack(fill="x", pady=15)
 
     def proses_daftar(self):
-        # Process student registration
-        nim = self.ent_reg_nim.get()
-        nama = self.ent_reg_nama.get()
-        jurusan = self.ent_reg_jurusan.get()
+        nim = self.ent_reg_nim.get().strip()
+        nama = self.ent_reg_nama.get().strip()
+        jurusan = self.ent_reg_jurusan.get().strip()
 
         if nim and nama:
             success = MahasiswaService.register_mahasiswa(nim, nama, jurusan)
             if success:
-                messagebox.showinfo("Sukses", f"Data {nama} berhasil disimpan!")
+                messagebox.showinfo("✓ Sukses", f"Data {nama} berhasil disimpan!")
                 self.ent_reg_nim.delete(0, "end")
                 self.ent_reg_nama.delete(0, "end")
                 self.ent_reg_jurusan.delete(0, "end")
+                self._absen_reload_filtered()
             else:
-                messagebox.showerror("Error", "NIM sudah terdaftar!")
+                messagebox.showerror("❌ Error", "NIM sudah terdaftar!")
         else:
-            messagebox.showwarning("Peringatan", "NIM dan Nama harus diisi!")
+            messagebox.showwarning("⚠️ Peringatan", "NIM dan Nama harus diisi!")
 
-    def proses_absen(self):
-        # Process attendance submission
-        nim = self.entry_nim_absen.get()
-        keterangan = self.combo_status.get()
+    def proses_delete_mahasiswa(self):
+        nim = self.ent_del_nim.get().strip()
+        if not nim:
+            messagebox.showwarning("⚠️ Peringatan", "Masukkan NIM yang akan dihapus.")
+            return
 
-        if nim:
-            status, nama = AbsensiService.submit_absensi(nim, keterangan)
+        confirm = simpledialog.askstring(
+            "🔐 Konfirmasi", "Ketik ulang NIM untuk konfirmasi hapus:"
+        )
+        if confirm is None:
+            return
+        if confirm.strip() != nim:
+            messagebox.showerror("❌ Error", "NIM konfirmasi tidak cocok.")
+            return
 
-            if status == "SUKSES":
-                self.lbl_info.config(
-                    text=f"Sukses: {nama} berhasil absen ({keterangan})",
-                    foreground="green",
-                )
-                self.entry_nim_absen.delete(0, "end")
-                self.load_laporan()
-            elif status == "SUDAH_ABSEN":
-                self.lbl_info.config(
-                    text=f"Info: {nama} sudah absen hari ini.", foreground="orange"
-                )
-                messagebox.showinfo("Info", "Anda sudah absen hari ini.")
-            else:
-                self.lbl_info.config(
-                    text="Error: NIM tidak ditemukan!", foreground="red"
-                )
-                messagebox.showerror(
-                    "Error", "NIM belum terdaftar. Silakan daftar dulu."
-                )
+        if MahasiswaService.delete_mahasiswa(nim):
+            messagebox.showinfo("✓ Sukses", f"Mahasiswa NIM {nim} berhasil dihapus.")
+            self.ent_del_nim.delete(0, "end")
+            self._absen_reload_filtered()
         else:
-            self.lbl_info.config(text="Masukkan NIM terlebih dahulu.", foreground="red")
+            messagebox.showerror("❌ Error", "NIM tidak ditemukan atau gagal dihapus.")
+
+    def setup_tab_laporan_modern(self):
+        # Modern report tab
+        self.tab3.configure(fg_color=CTK_BG_COLOR)
+
+        # Search section
+        search_frame = ctk.CTkFrame(self.tab3, fg_color="#34495E", corner_radius=10)
+        search_frame.pack(fill="x", padx=10, pady=10)
+
+        ctk.CTkLabel(
+            search_frame,
+            text="🔍 Cari Laporan:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(side="left", padx=10, pady=8)
+
+        self.ent_cari = ctk.CTkEntry(
+            search_frame,
+            placeholder_text="Cari nama atau NIM...",
+            width=250,
+            corner_radius=8,
+        )
+        self.ent_cari.pack(side="left", padx=5, pady=8)
+
+        search_btn = ctk.CTkButton(
+            search_frame,
+            text="Cari",
+            command=self.proses_cari,
+            width=70,
+            fg_color=CTK_BUTTON_COLOR,
+            hover_color=CTK_BUTTON_HOVER,
+        )
+        search_btn.pack(side="left", padx=5, pady=8)
+
+        refresh_btn = ctk.CTkButton(
+            search_frame,
+            text="🔄 Refresh",
+            command=self.load_laporan,
+            width=70,
+            fg_color="#95A5A6",
+            hover_color="#7F8C8D",
+        )
+        refresh_btn.pack(side="left", padx=5, pady=8)
+
+        export_btn = ctk.CTkButton(
+            search_frame,
+            text="📥 Export CSV",
+            command=self.export_ke_csv,
+            width=100,
+            fg_color=CTK_SUCCESS_COLOR,
+            hover_color="#229954",
+        )
+        export_btn.pack(side="right", padx=5, pady=8)
+
+        # Table section
+        table_frame = ctk.CTkFrame(self.tab3, fg_color=CTK_BG_COLOR)
+        table_frame.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Create Treeview for modern table
+        from tkinter import ttk
+
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure(
+            "Treeview",
+            background="#34495E",
+            foreground=CTK_FG_COLOR,
+            rowheight=25,
+            fieldbackground="#34495E",
+            borderwidth=0,
+        )
+        style.configure(
+            "Treeview.Heading", background="#2C3E50", foreground=CTK_FG_COLOR
+        )
+        style.map("Treeview", background=[("selected", "#3498DB")])
+
+        columns = ("Tanggal", "Jam", "NIM", "Nama", "Ket")
+        self.tree = ttk.Treeview(
+            table_frame, columns=columns, show="headings", height=20
+        )
+
+        for col in columns:
+            self.tree.heading(col, text=col)
+            self.tree.column(col, width=150)
+
+        scrollbar = ttk.Scrollbar(
+            table_frame, orient="vertical", command=self.tree.yview
+        )
+        self.tree.configure(yscrollcommand=scrollbar.set)
+
+        self.tree.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        self.tree.configure(yscrollcommand=scrollbar.set)
 
     def proses_cari(self):
-        # Process search
-        keyword = self.ent_cari.get()
-
-        # Clear table
+        keyword = self.ent_cari.get().strip()
         for item in self.tree.get_children():
             self.tree.delete(item)
 
-        # Get filtered data
-        rows = AbsensiService.search_records(keyword)
+        rows = (
+            AbsensiService.search_records(keyword)
+            if keyword
+            else AbsensiService.get_all_records()
+        )
         for row in rows:
             self.tree.insert("", "end", values=row)
 
     def load_laporan(self):
-        # Load all records into table
-        # Clear old data
         for item in self.tree.get_children():
             self.tree.delete(item)
-
-        # Get new data
         rows = AbsensiService.get_all_records()
         for row in rows:
             self.tree.insert("", "end", values=row)
 
     def export_ke_csv(self):
-        # Export data to CSV file
         rows = AbsensiService.get_all_records()
-
         if not rows:
             messagebox.showwarning("Kosong", "Tidak ada data untuk diexport.")
             return
@@ -204,246 +616,8 @@ class AplikasiAbsensi:
                     writer = csv.writer(f)
                     writer.writerow(["Tanggal", "Jam", "NIM", "Nama", "Keterangan"])
                     writer.writerows(rows)
-                messagebox.showinfo("Sukses", f"Data berhasil diexport ke {file_path}")
-            except Exception as e:
-                messagebox.showerror("Error", f"Gagal export: {e}")
-
-    # New attendance tab (v2) with list + radio buttons
-    def setup_tab_absensi_v2(self):
-        # Setup improved attendance tab with list, search, sort, and radio buttons
-        self.absen_frame = ttk.Frame(self.tab1, padding=10)
-        self.absen_frame.pack(fill="both", expand=True)
-
-        # Top controls: search and sort
-        top_controls = ttk.Frame(self.absen_frame)
-        top_controls.pack(fill="x")
-
-        ttk.Label(top_controls, text="Cari Nama/NIM:").pack(side="left", padx=5)
-        self.absen_search = ttk.Entry(top_controls, width=20)
-        self.absen_search.pack(side="left")
-
-        ttk.Button(top_controls, text="Cari", command=self._absen_reload_filtered).pack(
-            side="left", padx=5
-        )
-
-        ttk.Label(top_controls, text="Sort:").pack(side="left", padx=10)
-        self.absen_sort = ttk.Combobox(
-            top_controls,
-            values=[
-                "NIM ASC",
-                "NIM DESC",
-                "Nama ASC",
-                "Nama DESC",
-                "Status ASC",
-                "Status DESC",
-            ],
-            width=12,
-        )
-        self.absen_sort.current(0)
-        self.absen_sort.pack(side="left")
-        self.absen_sort.bind(
-            "<<ComboboxSelected>>", lambda e: self._absen_reload_filtered()
-        )
-
-        ttk.Button(top_controls, text="Reset", command=self._absen_reset_filters).pack(
-            side="left", padx=5
-        )
-
-        # Scrollable list area
-        list_container = ttk.Frame(self.absen_frame)
-        list_container.pack(fill="both", expand=True, pady=10)
-
-        self.absen_canvas = tk.Canvas(list_container)
-        self.absen_scrollbar = ttk.Scrollbar(
-            list_container, orient="vertical", command=self.absen_canvas.yview
-        )
-        self.absen_rows_frame = ttk.Frame(self.absen_canvas)
-
-        self.absen_rows_frame.bind(
-            "<Configure>",
-            lambda e: self.absen_canvas.configure(
-                scrollregion=self.absen_canvas.bbox("all")
-            ),
-        )
-        self.absen_canvas.create_window(
-            (0, 0), window=self.absen_rows_frame, anchor="nw"
-        )
-        self.absen_canvas.configure(yscrollcommand=self.absen_scrollbar.set)
-
-        self.absen_canvas.pack(side="left", fill="both", expand=True)
-        self.absen_scrollbar.pack(side="right", fill="y")
-
-        # Bottom actions
-        bottom_actions = ttk.Frame(self.absen_frame)
-        bottom_actions.pack(fill="x", pady=5)
-
-        self.lbl_info = ttk.Label(
-            bottom_actions, text="Status default semua: Alfa", foreground="blue"
-        )
-        self.lbl_info.pack(side="left")
-
-        ttk.Button(
-            bottom_actions, text="Save/Submit Semua", command=self._absen_submit_all
-        ).pack(side="right")
-
-        # Internal state
-        self.status_vars = {}
-        self.displayed_rows = []
-
-        # Initial load
-        self._absen_load_rows()
-
-    def _absen_load_rows(
-        self,
-        keyword: Optional[str] = None,
-        sort_field: str = "nim",
-        sort_dir: str = "ASC",
-    ):
-        # Load mahasiswa list and build rows with radio buttons
-        for rf in getattr(self, "displayed_rows", []):
-            try:
-                rf.destroy()
-            except Exception:
-                pass
-        self.displayed_rows = []
-
-        rows = MahasiswaService.list_mahasiswa(keyword, sort_field, sort_dir)
-        # Header
-        header = ttk.Frame(self.absen_rows_frame)
-        ttk.Label(header, text="NIM", width=15).pack(side="left")
-        ttk.Label(header, text="Nama", width=25).pack(side="left")
-        ttk.Label(header, text="Status", width=40).pack(side="left")
-        header.pack(fill="x", pady=2)
-        self.displayed_rows.append(header)
-
-        for nim, nama, jur in rows:
-            var = self.status_vars.get(nim)
-            if not var:
-                var = tk.StringVar(value="Alfa")
-                self.status_vars[nim] = var
-
-            rf = ttk.Frame(self.absen_rows_frame)
-            ttk.Label(rf, text=nim, width=15).pack(side="left")
-            ttk.Label(rf, text=nama, width=25).pack(side="left")
-
-            status_frame = ttk.Frame(rf)
-            status_frame.pack(side="left")
-            for st in ["Alfa", "Hadir", "Izin", "Sakit"]:
-                ttk.Radiobutton(status_frame, text=st, value=st, variable=var).pack(
-                    side="left", padx=2
+                messagebox.showinfo(
+                    "✓ Sukses", f"Data berhasil diexport ke {file_path}"
                 )
-
-            rf.pack(fill="x", pady=2)
-            self.displayed_rows.append(rf)
-
-        # Sort by status if selected
-        sel = self.absen_sort.get()
-        if sel.startswith("Status"):
-            reverse = sel.endswith("DESC")
-            body_rows = self.displayed_rows[1:]
-            body_sorted = sorted(
-                body_rows,
-                key=lambda fr: self.status_vars[
-                    fr.winfo_children()[0].cget("text")
-                ].get(),
-                reverse=reverse,
-            )
-            for fr in body_sorted:
-                fr.pack_forget()
-            for fr in body_sorted:
-                fr.pack(fill="x", pady=2)
-
-    def _absen_reset_filters(self):
-        # Reset search and sort
-        self.absen_search.delete(0, "end")
-        self.absen_sort.current(0)
-        self._absen_reload_filtered()
-
-    def _absen_reload_filtered(self):
-        # Reload rows based on search and sort
-        keyword = self.absen_search.get().strip() or None
-        sel = self.absen_sort.get()
-        if sel.startswith("NIM"):
-            sort_field = "nim"
-            sort_dir = "DESC" if sel.endswith("DESC") else "ASC"
-        elif sel.startswith("Nama"):
-            sort_field = "nama"
-            sort_dir = "DESC" if sel.endswith("DESC") else "ASC"
-        else:
-            sort_field = "nim"
-            sort_dir = "ASC"
-        self._absen_load_rows(keyword, sort_field, sort_dir)
-
-    def _absen_submit_all(self):
-        # Submit statuses for all displayed students
-        status_map = {}
-        for fr in self.displayed_rows[1:]:
-            nim_label = fr.winfo_children()[0]
-            nim = nim_label.cget("text")
-            status_map[nim] = self.status_vars[nim].get()
-
-        if not status_map:
-            messagebox.showwarning("Kosong", "Tidak ada mahasiswa untuk disubmit.")
-            return
-
-        count = AbsensiService.apply_statuses_for_today(status_map)
-        self.lbl_info.config(text=f"Sukses submit {count} status.", foreground="green")
-        self.load_laporan()
-
-    # Registration tab v2 with delete section
-    def setup_tab_daftar_v2(self):
-        # Setup student registration + deletion controls
-        frame = ttk.Frame(self.tab2, padding=20)
-        frame.pack()
-
-        ttk.Label(frame, text="NIM:").pack(anchor="w")
-        self.ent_reg_nim = ttk.Entry(frame, width=30)
-        self.ent_reg_nim.pack(pady=5)
-
-        ttk.Label(frame, text="Nama Lengkap:").pack(anchor="w")
-        self.ent_reg_nama = ttk.Entry(frame, width=30)
-        self.ent_reg_nama.pack(pady=5)
-
-        ttk.Label(frame, text="Jurusan/Kelas:").pack(anchor="w")
-        self.ent_reg_jurusan = ttk.Entry(frame, width=30)
-        self.ent_reg_jurusan.pack(pady=5)
-
-        ttk.Button(
-            frame, text="Simpan Data Mahasiswa", command=self.proses_daftar
-        ).pack(pady=20)
-
-        sep = ttk.Separator(self.tab2, orient="horizontal")
-        sep.pack(fill="x", pady=10)
-
-        del_frame = ttk.Frame(self.tab2, padding=10)
-        del_frame.pack(fill="x")
-        ttk.Label(del_frame, text="Hapus Mahasiswa (masukkan NIM):").pack(anchor="w")
-        self.ent_del_nim = ttk.Entry(del_frame, width=30)
-        self.ent_del_nim.pack(pady=5)
-        ttk.Button(
-            del_frame, text="Delete Mahasiswa", command=self.proses_delete_mahasiswa
-        ).pack(pady=5)
-
-    def proses_delete_mahasiswa(self):
-        # Process delete mahasiswa with confirmation by re-entering NIM
-        nim = getattr(self, "ent_del_nim", None)
-        nim = nim.get().strip() if nim else ""
-        if not nim:
-            messagebox.showwarning("Peringatan", "Masukkan NIM yang akan dihapus.")
-            return
-
-        confirm = simpledialog.askstring(
-            "Konfirmasi", "Ketik ulang NIM untuk konfirmasi hapus:"
-        )
-        if confirm is None:
-            return
-        if confirm.strip() != nim:
-            messagebox.showerror("Error", "NIM konfirmasi tidak cocok.")
-            return
-
-        if MahasiswaService.delete_mahasiswa(nim):
-            messagebox.showinfo("Sukses", f"Mahasiswa NIM {nim} berhasil dihapus.")
-            self.ent_del_nim.delete(0, "end")
-            self._absen_reload_filtered()
-        else:
-            messagebox.showerror("Error", "NIM tidak ditemukan atau gagal dihapus.")
+            except Exception as e:
+                messagebox.showerror("❌ Error", f"Gagal export: {e}")

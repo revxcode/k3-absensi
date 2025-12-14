@@ -1,7 +1,7 @@
 # Main entry point for the application
-import tkinter as tk
+import customtkinter as ctk
 from app.database import Database
-from app.gui import AplikasiAbsensi
+from app.gui import AplikasiAbsensiModern
 
 
 def main():
@@ -9,9 +9,11 @@ def main():
     # Initialize database
     Database.init_db()
 
-    # Create and run GUI
-    root = tk.Tk()
-    app = AplikasiAbsensi(root)
+    # Create and run modern GUI
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
+    root = ctk.CTk()
+    app = AplikasiAbsensiModern(root)
     root.mainloop()
 
 

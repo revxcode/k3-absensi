@@ -5,70 +5,40 @@
 ```mermaid
 flowchart TD
     START([START]) --> OpenApp[Buka Aplikasi Absensi]
-    OpenApp --> MainWindow[Tampil Window dengan 3 Tab + Close App Button]
-    MainWindow --> ClickTab1[Pilih Tab 'Isi Kehadiran']
-    ClickTab1 --> LoadList[Sistem: Load Daftar Mahasiswa]
-    LoadList --> DisplayList[Tampil List Mahasiswa dengan Status Radio<br/>Default: Alfa]
+    OpenApp --> MainWindow[Tampil Window Aplikasi]
+    MainWindow --> Tab1[Pilih Tab: Isi Kehadiran]
     
-    DisplayList --> UserAction{Aksi Dosen}
+    Tab1 --> LoadList[Sistem Load Daftar Mahasiswa]
+    LoadList --> DisplayList[Tampil List Mahasiswa<br/>Default Status: Alfa]
     
-    %% Search & Filter
-    UserAction -->|Cari Nama/NIM| InputSearch[Masukkan Keyword di Search Box]
-    InputSearch --> ClickCari[Klik Tombol 'Cari']
-    ClickCari --> FilterList[Sistem: Filter List by Nama/NIM]
-    FilterList --> DisplayFiltered[Tampil Mahasiswa Hasil Filter]
-    DisplayFiltered --> UserAction
+    DisplayList --> Aksi{Pilih Aksi}
     
-    %% Sort
-    UserAction -->|Ubah Sort| SelectSort[Pilih dari Dropdown:<br/>NIM ASC/DESC<br/>Nama ASC/DESC<br/>Status ASC/DESC]
-    SelectSort --> ApplySort[Sistem: Sort List Sesuai Pilihan]
-    ApplySort --> DisplaySorted[Tampil List Terurut]
-    DisplaySorted --> UserAction
+    Aksi -->|Cari/Filter| Search[Gunakan Search Box &<br/>Sort Dropdown]
+    Search --> DisplayList
     
-    %% Reset Filters
-    UserAction -->|Reset| ClickReset[Klik Tombol 'Reset']
-    ClickReset --> ClearFilters[Sistem: Clear Search & Sort]
-    ClearFilters --> ReloadAll[Reload Semua Mahasiswa]
-    ReloadAll --> DisplayList
+    Aksi -->|Ubah Status| ChangeStatus[Klik Radio Button<br/>Opsi: Alfa, Hadir, Izin, Sakit]
+    ChangeStatus --> DisplayList
     
-    %% Select Status
-    UserAction -->|Pilih Status| SelectRadio[Dosen: Klik Radio Button untuk Setiap Mahasiswa<br/>Opsi: Alfa, Hadir, Izin, Sakit]
-    SelectRadio --> StatusSelected[Status Tersimpan di Memory]
-    StatusSelected --> CheckMore{Ada Lagi Yang<br/>Perlu Diubah?}
-    CheckMore -->|Ya| UserAction
-    CheckMore -->|Tidak| SubmitAll[Dosen: Klik 'Save/Submit Semua']
+    Aksi -->|Submit| Submit[Klik 'Save/Submit Semua']
+    Submit --> SaveDB[Sistem Simpan ke Database]
+    SaveDB --> Success[Tampil Success Message]
+    Success --> DisplayList
     
-    %% Save All
-    SubmitAll --> ValidateList{Ada Mahasiswa<br/>di List?}
-    ValidateList -->|Tidak| WarnEmpty[Tampil Warning:<br/>'Tidak ada mahasiswa']
-    WarnEmpty --> UserAction
-    ValidateList -->|Ya| SaveDB[Sistem: Upsert Semua Status ke Database<br/>untuk Tanggal Hari Ini]
-    SaveDB --> SuccessAll[Tampil Success:<br/>'Sukses submit X status']
-    SuccessAll --> RefreshLaporan[Sistem: Auto-Refresh Tab Rekap Laporan]
-    RefreshLaporan --> UserAction
+    Aksi -->|Kelola Mahasiswa| Tab2[Pindah ke Tab:<br/>Daftar Mahasiswa]
+    Tab2 --> ManageList[Tambah/Hapus Mahasiswa]
+    ManageList --> DisplayList
     
-    %% Other Tabs or Close
-    UserAction -->|Pindah Tab| TabChoice{Pilih Tab}
-    TabChoice -->|Daftar Mahasiswa| DaftarTab[Ke Tab Daftar Mahasiswa]
-    DaftarTab --> ManageStudent[Tambah/Hapus Mahasiswa]
-    ManageStudent --> ClickTab1
+    Aksi -->|Lihat Laporan| Tab3[Pindah ke Tab:<br/>Rekap Laporan]
+    Tab3 --> ViewReport[Lihat & Export Laporan]
+    ViewReport --> DisplayList
     
-    TabChoice -->|Rekap Laporan| LaporanTab[Ke Tab Rekap Laporan]
-    LaporanTab --> ViewRecap[Lihat Laporan Absensi]
-    ViewRecap --> ClickTab1
-    
-    UserAction -->|Selesai| CloseApp[Klik Tombol 'Close App']
-    CloseApp --> ExitApp([END])
+    Aksi -->|Keluar| Close[Klik 'Close App']
+    Close --> END([END])
     
     style START fill:#90EE90
-    style ExitApp fill:#FFB6C1
-    style DisplayList fill:#FFE4E1
-    style SelectRadio fill:#FFE4E1
-    style WarnEmpty fill:#FFE4E1
-    style SuccessAll fill:#E1FFE1
-    style DisplayFiltered fill:#E1F5FF
-    style DisplaySorted fill:#E1F5FF
-    style RefreshLaporan fill:#E1FFE1
+    style END fill:#FFB6C1
+    style DisplayList fill:#E1F5FF
+    style Success fill:#E1FFE1
 ```
 
 ## Database Schema Diagram
