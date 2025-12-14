@@ -294,8 +294,7 @@ sequenceDiagram
         end
     end
 ```
-
-## Data Flow Diagram
+## Data Flow Diagram with Colors
 
 ```mermaid
 flowchart LR
@@ -309,11 +308,10 @@ flowchart LR
     Service --> GUI
     GUI --> Display[Display to User]
     
-    style User fill:#e1f5ff
-    style GUI fill:#fff4e1
-    style Service fill:#ffe1f5
-    style Query fill:#e1ffe1
-    style DB fill:#f5e1ff
-    style Display fill:#e1f5ff
+    style User fill:#e1f5ff,stroke:#2196F3,stroke-width:2px
+    style GUI fill:#fff4e1,stroke:#FF9800,stroke-width:2px
+    style Service fill:#ffe1f5,stroke:#9C27B0,stroke-width:2px
+    style Query fill:#e1ffe1,stroke:#4CAF50,stroke-width:2px
+    style DB fill:#f5e1ff,stroke:#F44336,stroke-width:2px
+    style Display fill:#e1f5ff,stroke:#2196F3,stroke-width:2px
 ```
-
