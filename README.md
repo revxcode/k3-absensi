@@ -4,7 +4,6 @@ Aplikasi desktop untuk manajemen absensi mahasiswa dengan antarmuka modern mengg
 
 ![Aplikasi Absensi Interface](image.png)
 
-*Tampilan aplikasi dengan color-coded status highlighting: Alfa (merah), Hadir (hijau), Izin (teal), Sakit (orange)*
 
 ## Fitur Utama
 
