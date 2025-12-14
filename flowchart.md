@@ -1,104 +1,44 @@
 # Flowchart Aplikasi Absensi - Kelompok 3
 
-## User Flow Diagram
+## User Flow - How to Absen (Attendance)
 
 ```mermaid
 flowchart TD
-    Start([User Opens Application]) --> InitDB[System: Initialize Database]
-    InitDB --> CreateTables[System: Create Tables if Not Exist]
-    CreateTables --> LoadGUI[System: Load GUI Interface]
-    LoadGUI --> LoadData[System: Auto-Load Rekap Data]
-    LoadData --> ShowMainWindow[Display Main Window with 3 Tabs]
+    START([START]) --> OpenApp[Buka Aplikasi Absensi]
+    OpenApp --> MainWindow[Tampil Window dengan 3 Tab]
+    MainWindow --> ClickTab1[Pilih Tab 'Isi Kehadiran']
+    ClickTab1 --> InputNIM[Masukkan NIM Mahasiswa]
+    InputNIM --> SelectStatus[Pilih Status: Hadir/Izin/Sakit]
+    SelectStatus --> ClickSubmit[Klik Tombol 'SUBMIT ABSENSI']
     
-    ShowMainWindow --> UserChoice{User Chooses Action}
+    ClickSubmit --> CheckNIM{Apakah NIM<br/>Terdaftar?}
     
-    %% TAB 1: ISI KEHADIRAN
-    UserChoice -->|Click Tab 1| Tab1Display[Show: Isi Kehadiran Form]
-    Tab1Display --> User1Input[User: Enter NIM in Input Field]
-    User1Input --> User1Select[User: Select Status from Dropdown]
-    User1Select --> User1Action{User Action}
-    User1Action -->|Click Submit| ProcessAbsen[System: Process Absensi]
-    ProcessAbsen --> ValidateNIM{Validate: NIM Exists?}
+    CheckNIM -->|Tidak| ErrorMsg[Tampil Error:<br/>'NIM belum terdaftar']
+    ErrorMsg --> TryAgain{Coba Lagi?}
+    TryAgain -->|Ya| InputNIM
+    TryAgain -->|Tidak| END1([END])
     
-    ValidateNIM -->|No| ShowError1[Show Error Dialog:<br/>NIM belum terdaftar]
-    ShowError1 --> UpdateLabel1[Update Status Label: Red]
-    UpdateLabel1 --> UserChoice
+    CheckNIM -->|Ya| CheckToday{Sudah Absen<br/>Hari Ini?}
     
-    ValidateNIM -->|Yes| CheckDuplicate1{Check: Already Absent Today?}
-    CheckDuplicate1 -->|Yes| ShowInfo1[Show Info Dialog:<br/>Sudah absen hari ini]
-    ShowInfo1 --> UpdateLabel2[Update Status Label: Orange]
-    UpdateLabel2 --> UserChoice
+    CheckToday -->|Ya| InfoMsg[Tampil Info:<br/>'Sudah absen hari ini']
+    InfoMsg --> Done{Selesai?}
+    Done -->|Ya| END2([END])
+    Done -->|Absen Lagi| InputNIM
     
-    CheckDuplicate1 -->|No| SaveAbsen[System: Save to Database]
-    SaveAbsen --> ShowSuccess1[Show Success Dialog]
-    ShowSuccess1 --> UpdateLabel3[Update Status Label: Green]
-    UpdateLabel3 --> ClearInput1[System: Clear NIM Input]
-    ClearInput1 --> AutoRefresh[System: Auto-Refresh Rekap Table]
-    AutoRefresh --> UserChoice
+    CheckToday -->|Tidak| SaveData[Simpan Data Absensi ke Database]
+    SaveData --> SuccessMsg[Tampil Success:<br/>'Berhasil absen']
+    SuccessMsg --> ClearForm[Form NIM Otomatis Terhapus]
+    ClearForm --> NextAction{Mau Absen<br/>Lagi?}
+    NextAction -->|Ya| InputNIM
+    NextAction -->|Tidak| END3([END])
     
-    User1Action -->|Switch Tab| UserChoice
-    
-    %% TAB 2: DAFTAR MAHASISWA
-    UserChoice -->|Click Tab 2| Tab2Display[Show: Registration Form]
-    Tab2Display --> User2Input[User: Fill Form<br/>NIM, Nama, Jurusan]
-    User2Input --> User2Action{User Action}
-    User2Action -->|Click Simpan| ValidateForm{Validate: NIM & Nama Filled?}
-    
-    ValidateForm -->|No| ShowWarning[Show Warning Dialog:<br/>NIM dan Nama harus diisi]
-    ShowWarning --> UserChoice
-    
-    ValidateForm -->|Yes| CheckDuplicate2{Check: NIM Already Exists?}
-    CheckDuplicate2 -->|Yes| ShowError2[Show Error Dialog:<br/>NIM sudah terdaftar]
-    ShowError2 --> UserChoice
-    
-    CheckDuplicate2 -->|No| SaveMhs[System: Save to Database]
-    SaveMhs --> ShowSuccess2[Show Success Dialog:<br/>Data berhasil disimpan]
-    ShowSuccess2 --> ClearForm[System: Clear All Form Fields]
-    ClearForm --> UserChoice
-    
-    User2Action -->|Switch Tab| UserChoice
-    
-    %% TAB 3: REKAP LAPORAN
-    UserChoice -->|Click Tab 3| Tab3Display[Show: Rekap Laporan Table]
-    Tab3Display --> DisplayAllData[Display All Absensi Records]
-    DisplayAllData --> User3Action{User Action}
-    
-    User3Action -->|Enter Keyword & Click Cari| GetKeyword[System: Get Search Keyword]
-    GetKeyword --> SearchProcess[System: Search by Nama/NIM]
-    SearchProcess --> ClearTable1[System: Clear Table]
-    ClearTable1 --> ShowFiltered[System: Display Filtered Results]
-    ShowFiltered --> User3Action
-    
-    User3Action -->|Click Refresh| ReloadData[System: Reload All Records]
-    ReloadData --> ClearTable2[System: Clear Table]
-    ClearTable2 --> RedisplayAll[System: Display All Records]
-    RedisplayAll --> User3Action
-    
-    User3Action -->|Click Export CSV| CheckDataAvail{Check: Data Available?}
-    CheckDataAvail -->|No| ShowWarning2[Show Warning Dialog:<br/>Tidak ada data]
-    ShowWarning2 --> User3Action
-    
-    CheckDataAvail -->|Yes| OpenDialog[System: Open Save File Dialog]
-    OpenDialog --> User3SelectPath{User Selects File Path?}
-    User3SelectPath -->|Cancel| User3Action
-    User3SelectPath -->|Select| WriteCSV[System: Write Data to CSV]
-    WriteCSV --> ShowSuccess3[Show Success Dialog:<br/>Data berhasil diexport]
-    ShowSuccess3 --> User3Action
-    
-    User3Action -->|Switch Tab| UserChoice
-    
-    UserChoice -->|Close Window| End([Application Closed])
-    
-    style Start fill:#90EE90
-    style End fill:#FFB6C1
-    style ShowError1 fill:#FFE4E1
-    style ShowError2 fill:#FFE4E1
-    style ShowInfo1 fill:#FFE4B5
-    style ShowWarning fill:#FFE4B5
-    style ShowWarning2 fill:#FFE4B5
-    style ShowSuccess1 fill:#E1FFE1
-    style ShowSuccess2 fill:#E1FFE1
-    style ShowSuccess3 fill:#E1FFE1
+    style START fill:#90EE90
+    style END1 fill:#FFB6C1
+    style END2 fill:#FFB6C1
+    style END3 fill:#FFB6C1
+    style ErrorMsg fill:#FFE4E1
+    style InfoMsg fill:#FFE4B5
+    style SuccessMsg fill:#E1FFE1
 ```
 
 ## Database Schema Diagram
