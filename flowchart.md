@@ -54,7 +54,105 @@ flowchart TD
     style ViewReport fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
     style Close fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
+## Database Schema Diagram
 
+```mermaid
+erDiagram
+    MAHASISWA ||--o{ ABSENSI : memiliki
+    MAHASISWA {
+        string nim PK
+        string nama
+        string jurusan
+    }
+    ABSENSI {
+        int id PK
+        string nim FK
+        date tanggal
+        time waktu
+        string status
+    }
+```
+
+## Module Architecture
+
+```mermaid
+flowchart TB
+    Main[main.py]
+    GUI[gui.py]
+    Service[service.py]
+    Query[query.py]
+    DB[(SQLite)]
+    
+    Main --> GUI
+    Main --> Service
+    GUI --> Service
+    Service --> Query
+    Query --> DB
+    
+    style Main fill:#4CAF50,color:#fff
+    style GUI fill:#2196F3,color:#fff
+    style Service fill:#FF9800,color:#fff
+    style Query fill:#9C27B0,color:#fff
+    style DB fill:#F44336,color:#fff
+```
+
+## Class Diagram
+
+```mermaid
+classDiagram
+    class Database {
+        +connect()
+        +execute()
+    }
+    
+    class MahasiswaQuery {
+        +insert()
+        +getAll()
+        +delete()
+    }
+    
+    class AbsensiQuery {
+        +insert()
+        +getAll()
+        +search()
+    }
+    
+    class AbsensiService {
+        +proses_absensi()
+        +cari_absensi()
+        +export_csv()
+    }
+    
+    class GUI {
+        +tab_absensi()
+        +tab_mahasiswa()
+        +tab_laporan()
+    }
+    
+    GUI --> AbsensiService
+    AbsensiService --> MahasiswaQuery
+    AbsensiService --> AbsensiQuery
+    MahasiswaQuery --> Database
+    AbsensiQuery --> Database
+```
+
+## Data Flow
+
+```mermaid
+flowchart LR
+    User[User] -->|Input| GUI
+    GUI -->|Request| Service
+    Service -->|Query| DB[(Database)]
+    DB -->|Result| Service
+    Service -->|Data| GUI
+    GUI -->|Display| User
+    
+    style User fill:#e1f5ff
+    style GUI fill:#fff4e1
+    style Service fill:#ffe1f5
+    style DB fill:#f5e1ff
+    style User fill:#e1f5ff
+```
 ## Database Schema Diagram
 
 ```mermaid
@@ -218,3 +316,4 @@ flowchart LR
     style DB fill:#f5e1ff
     style Display fill:#e1f5ff
 ```
+
