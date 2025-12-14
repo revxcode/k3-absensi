@@ -136,23 +136,6 @@ classDiagram
     AbsensiQuery --> Database
 ```
 
-## Data Flow
-
-```mermaid
-flowchart LR
-    User[User] -->|Input| GUI
-    GUI -->|Request| Service
-    Service -->|Query| DB[(Database)]
-    DB -->|Result| Service
-    Service -->|Data| GUI
-    GUI -->|Display| User
-    
-    style User fill:#e1f5ff
-    style GUI fill:#fff4e1
-    style Service fill:#ffe1f5
-    style DB fill:#f5e1ff
-    style User fill:#e1f5ff
-```
 ## Database Schema Diagram
 
 ```mermaid
@@ -294,8 +277,6 @@ sequenceDiagram
         end
     end
 ```
-## Data Flow Diagram with Colors
-
 ```mermaid
 flowchart LR
     User[User Input] --> GUI[GUI Layer]
@@ -314,4 +295,5 @@ flowchart LR
     style Query fill:#e1ffe1,stroke:#4CAF50,stroke-width:2px
     style DB fill:#f5e1ff,stroke:#F44336,stroke-width:2px
     style Display fill:#e1f5ff,stroke:#2196F3,stroke-width:2px
+    style User, GUI, Service, Query, DB, Display color:#000
 ```
