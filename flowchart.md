@@ -1,6 +1,6 @@
 # Flowchart Aplikasi Absensi - Kelompok 3
 
-## User Flow - How to Absen (Attendance) - Updated v2
+## User Flow - How to Absen (Attendance)
 
 ```mermaid
 flowchart TD
@@ -64,13 +64,11 @@ erDiagram
     MAHASISWA {
         string nim PK
         string nama
-        string jurusan
     }
     ABSENSI {
         int id PK
         string nim FK
-        string tanggal
-        string waktu
+        date tanggal
         string keterangan
     }
 ```
@@ -78,28 +76,17 @@ erDiagram
 ## Module Architecture Diagram
 
 ```mermaid
-flowchart LR
-    Main[main.py] --> Database[database.py]
-    Main --> GUI[gui.py]
-    
+flowchart TB
+    Main[main.py] --> GUI[gui.py]
     GUI --> Services[services.py]
     Services --> Queries[queries.py]
-    Services --> Models[models.py]
-    Queries --> Database
+    Queries --> DB[(database.py)]
     
-    subgraph "Presentation Layer"
-        GUI
-    end
-    
-    subgraph "Business Logic Layer"
-        Services
-        Models
-    end
-    
-    subgraph "Data Access Layer"
-        Queries
-        Database
-    end
+    style Main fill:#4CAF50,color:#fff
+    style GUI fill:#2196F3,color:#fff
+    style Services fill:#FF9800,color:#fff
+    style Queries fill:#9C27B0,color:#fff
+    style DB fill:#F44336,color:#fff
 ```
 
 ## Class Structure Diagram
@@ -107,52 +94,30 @@ flowchart LR
 ```mermaid
 classDiagram
     class Database {
-        +String DB_NAME
-        +get_connection() Connection
-        +init_db() void
+        +get_connection()
+        +init_db()
     }
     
-    class MahasiswaQueries {
-        +insert_mahasiswa(nim, nama, jurusan) bool
-        +get_mahasiswa_by_nim(nim) Tuple
+    class Queries {
+        +insert()
+        +get_all()
+        +search()
     }
     
-    class AbsensiQueries {
-        +insert_absensi(nim, tanggal, waktu, keterangan) void
-        +check_existing_absensi(nim, tanggal) bool
-        +get_all_absensi() List
-        +search_absensi(keyword) List
+    class Services {
+        +submit_absensi()
+        +get_records()
     }
     
-    class MahasiswaService {
-        +register_mahasiswa(nim, nama, jurusan) bool
+    class GUI {
+        +setup_tabs()
+        +proses_absen()
+        +load_laporan()
     }
     
-    class AbsensiService {
-        +submit_absensi(nim, keterangan) Tuple
-        +get_all_records() List
-        +search_records(keyword) List
-    }
-    
-    class AplikasiAbsensi {
-        -root: Tk
-        -tabs: Notebook
-        +setup_tab_absensi() void
-        +setup_tab_daftar() void
-        +setup_tab_laporan() void
-        +proses_absen() void
-        +proses_daftar() void
-        +proses_cari() void
-        +load_laporan() void
-        +export_ke_csv() void
-    }
-    
-    MahasiswaQueries --> Database
-    AbsensiQueries --> Database
-    MahasiswaService --> MahasiswaQueries
-    AbsensiService --> AbsensiQueries
-    AplikasiAbsensi --> MahasiswaService
-    AplikasiAbsensi --> AbsensiService
+    GUI --> Services
+    Services --> Queries
+    Queries --> Database
 ```
 
 ## Sequence Diagram - Submit Absensi
@@ -160,42 +125,17 @@ classDiagram
 ```mermaid
 sequenceDiagram
     participant User
-    participant GUI as AplikasiAbsensi
-    participant Service as AbsensiService
-    participant Query as AbsensiQueries
-    participant MQ as MahasiswaQueries
-    participant DB as Database
+    participant GUI
+    participant Service
+    participant DB
     
     User->>GUI: Input NIM & Status
     User->>GUI: Click Submit
-    GUI->>Service: submit_absensi(nim, keterangan)
-    Service->>MQ: get_mahasiswa_by_nim(nim)
-    MQ->>DB: SELECT nama FROM mahasiswa WHERE nim=?
-    DB-->>MQ: Return data
-    MQ-->>Service: Return (nama)
-    
-    alt NIM Not Found
-        Service-->>GUI: ("NIM_TIDAK_ADA", None)
-        GUI-->>User: Show Error Message
-    else NIM Found
-        Service->>Query: check_existing_absensi(nim, tanggal)
-        Query->>DB: SELECT * FROM absensi WHERE nim=? AND tanggal=?
-        DB-->>Query: Return result
-        Query-->>Service: Return exists
-        
-        alt Already Absent Today
-            Service-->>GUI: ("SUDAH_ABSEN", nama)
-            GUI-->>User: Show Info Message
-        else Not Yet Absent
-            Service->>Query: insert_absensi(nim, tanggal, waktu, keterangan)
-            Query->>DB: INSERT INTO absensi VALUES(...)
-            DB-->>Query: Success
-            Query-->>Service: Success
-            Service-->>GUI: ("SUKSES", nama)
-            GUI->>GUI: Refresh Table
-            GUI-->>User: Show Success Message
-        end
-    end
+    GUI->>Service: submit_absensi()
+    Service->>DB: Check & Insert Data
+    DB-->>Service: Return Result
+    Service-->>GUI: Status Message
+    GUI-->>User: Show Result
 ```
 
 ## Data Flow Diagram
