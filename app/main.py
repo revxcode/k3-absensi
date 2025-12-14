@@ -1,4 +1,3 @@
-# Aplikasi Absensi - Kelompok 3
 # Main entry point for the application
 import tkinter as tk
 from app.database import Database

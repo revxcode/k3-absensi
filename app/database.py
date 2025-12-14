@@ -1,11 +1,13 @@
 # Database connection and initialization module
 import sqlite3
 from typing import Optional
+import os
 
 
 class Database:
     # Database connection manager
     DB_NAME = "absensi_kelompok3.db"
+    SCHEMA_FILE = "app/database/schema.sql"
 
     @staticmethod
     def get_connection() -> sqlite3.Connection:
@@ -15,33 +17,22 @@ class Database:
     @staticmethod
     def init_db() -> None:
         # Initialize database tables if they don't exist
+        if not os.path.exists(Database.SCHEMA_FILE):
+            print(f"Error: File {Database.SCHEMA_FILE} tidak ditemukan!")
+            return
+
         conn = Database.get_connection()
         cursor = conn.cursor()
 
-        # Tabel Mahasiswa
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS mahasiswa (
-                nim TEXT PRIMARY KEY,
-                nama TEXT NOT NULL,
-                jurusan TEXT
-            )
-            """
-        )
+        try:
+            with open(Database.SCHEMA_FILE, "r") as f:
+                sql_script = f.read()
 
-        # Tabel Absensi
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS absensi (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nim TEXT,
-                tanggal TEXT,
-                waktu TEXT,
-                keterangan TEXT,
-                FOREIGN KEY (nim) REFERENCES mahasiswa (nim)
-            )
-            """
-        )
+            cursor.executescript(sql_script)
+            conn.commit()
+            print("Database berhasil diinisialisasi dengan schema.sql")
 
-        conn.commit()
-        conn.close()
+        except sqlite3.Error as e:
+            print(f"Terjadi kesalahan database: {e}")
+        finally:
+            conn.close()
