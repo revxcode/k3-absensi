@@ -35,10 +35,24 @@ flowchart TD
     Aksi -->|Keluar| Close[Klik 'Close App']
     Close --> END([END])
     
-    style START fill:#90EE90
-    style END fill:#FFB6C1
-    style DisplayList fill:#E1F5FF
-    style Success fill:#E1FFE1
+    style START fill:#4CAF50,stroke:#2E7D32,stroke-width:3px,color:#fff
+    style END fill:#F44336,stroke:#C62828,stroke-width:3px,color:#fff
+    style OpenApp fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style MainWindow fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style Tab1 fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style LoadList fill:#FF9800,stroke:#E65100,stroke-width:2px,color:#fff
+    style DisplayList fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style Aksi fill:#9C27B0,stroke:#6A1B9A,stroke-width:2px,color:#fff
+    style Search fill:#FFC107,stroke:#F57F17,stroke-width:2px,color:#000
+    style ChangeStatus fill:#FFC107,stroke:#F57F17,stroke-width:2px,color:#000
+    style Submit fill:#FF9800,stroke:#E65100,stroke-width:2px,color:#fff
+    style SaveDB fill:#FF9800,stroke:#E65100,stroke-width:2px,color:#fff
+    style Success fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style Tab2 fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
+    style ManageList fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
+    style Tab3 fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
+    style ViewReport fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
+    style Close fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
 
 ## Database Schema Diagram
