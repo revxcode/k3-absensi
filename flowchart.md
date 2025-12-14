@@ -1,44 +1,74 @@
 # Flowchart Aplikasi Absensi - Kelompok 3
 
-## User Flow - How to Absen (Attendance)
+## User Flow - How to Absen (Attendance) - Updated v2
 
 ```mermaid
 flowchart TD
     START([START]) --> OpenApp[Buka Aplikasi Absensi]
-    OpenApp --> MainWindow[Tampil Window dengan 3 Tab]
+    OpenApp --> MainWindow[Tampil Window dengan 3 Tab + Close App Button]
     MainWindow --> ClickTab1[Pilih Tab 'Isi Kehadiran']
-    ClickTab1 --> InputNIM[Masukkan NIM Mahasiswa]
-    InputNIM --> SelectStatus[Pilih Status: Hadir/Izin/Sakit]
-    SelectStatus --> ClickSubmit[Klik Tombol 'SUBMIT ABSENSI']
+    ClickTab1 --> LoadList[Sistem: Load Daftar Mahasiswa]
+    LoadList --> DisplayList[Tampil List Mahasiswa dengan Status Radio<br/>Default: Alfa]
     
-    ClickSubmit --> CheckNIM{Apakah NIM<br/>Terdaftar?}
+    DisplayList --> UserAction{Aksi Dosen}
     
-    CheckNIM -->|Tidak| ErrorMsg[Tampil Error:<br/>'NIM belum terdaftar']
-    ErrorMsg --> TryAgain{Coba Lagi?}
-    TryAgain -->|Ya| InputNIM
-    TryAgain -->|Tidak| END1([END])
+    %% Search & Filter
+    UserAction -->|Cari Nama/NIM| InputSearch[Masukkan Keyword di Search Box]
+    InputSearch --> ClickCari[Klik Tombol 'Cari']
+    ClickCari --> FilterList[Sistem: Filter List by Nama/NIM]
+    FilterList --> DisplayFiltered[Tampil Mahasiswa Hasil Filter]
+    DisplayFiltered --> UserAction
     
-    CheckNIM -->|Ya| CheckToday{Sudah Absen<br/>Hari Ini?}
+    %% Sort
+    UserAction -->|Ubah Sort| SelectSort[Pilih dari Dropdown:<br/>NIM ASC/DESC<br/>Nama ASC/DESC<br/>Status ASC/DESC]
+    SelectSort --> ApplySort[Sistem: Sort List Sesuai Pilihan]
+    ApplySort --> DisplaySorted[Tampil List Terurut]
+    DisplaySorted --> UserAction
     
-    CheckToday -->|Ya| InfoMsg[Tampil Info:<br/>'Sudah absen hari ini']
-    InfoMsg --> Done{Selesai?}
-    Done -->|Ya| END2([END])
-    Done -->|Absen Lagi| InputNIM
+    %% Reset Filters
+    UserAction -->|Reset| ClickReset[Klik Tombol 'Reset']
+    ClickReset --> ClearFilters[Sistem: Clear Search & Sort]
+    ClearFilters --> ReloadAll[Reload Semua Mahasiswa]
+    ReloadAll --> DisplayList
     
-    CheckToday -->|Tidak| SaveData[Simpan Data Absensi ke Database]
-    SaveData --> SuccessMsg[Tampil Success:<br/>'Berhasil absen']
-    SuccessMsg --> ClearForm[Form NIM Otomatis Terhapus]
-    ClearForm --> NextAction{Mau Absen<br/>Lagi?}
-    NextAction -->|Ya| InputNIM
-    NextAction -->|Tidak| END3([END])
+    %% Select Status
+    UserAction -->|Pilih Status| SelectRadio[Dosen: Klik Radio Button untuk Setiap Mahasiswa<br/>Opsi: Alfa, Hadir, Izin, Sakit]
+    SelectRadio --> StatusSelected[Status Tersimpan di Memory]
+    StatusSelected --> CheckMore{Ada Lagi Yang<br/>Perlu Diubah?}
+    CheckMore -->|Ya| UserAction
+    CheckMore -->|Tidak| SubmitAll[Dosen: Klik 'Save/Submit Semua']
+    
+    %% Save All
+    SubmitAll --> ValidateList{Ada Mahasiswa<br/>di List?}
+    ValidateList -->|Tidak| WarnEmpty[Tampil Warning:<br/>'Tidak ada mahasiswa']
+    WarnEmpty --> UserAction
+    ValidateList -->|Ya| SaveDB[Sistem: Upsert Semua Status ke Database<br/>untuk Tanggal Hari Ini]
+    SaveDB --> SuccessAll[Tampil Success:<br/>'Sukses submit X status']
+    SuccessAll --> RefreshLaporan[Sistem: Auto-Refresh Tab Rekap Laporan]
+    RefreshLaporan --> UserAction
+    
+    %% Other Tabs or Close
+    UserAction -->|Pindah Tab| TabChoice{Pilih Tab}
+    TabChoice -->|Daftar Mahasiswa| DaftarTab[Ke Tab Daftar Mahasiswa]
+    DaftarTab --> ManageStudent[Tambah/Hapus Mahasiswa]
+    ManageStudent --> ClickTab1
+    
+    TabChoice -->|Rekap Laporan| LaporanTab[Ke Tab Rekap Laporan]
+    LaporanTab --> ViewRecap[Lihat Laporan Absensi]
+    ViewRecap --> ClickTab1
+    
+    UserAction -->|Selesai| CloseApp[Klik Tombol 'Close App']
+    CloseApp --> ExitApp([END])
     
     style START fill:#90EE90
-    style END1 fill:#FFB6C1
-    style END2 fill:#FFB6C1
-    style END3 fill:#FFB6C1
-    style ErrorMsg fill:#FFE4E1
-    style InfoMsg fill:#FFE4B5
-    style SuccessMsg fill:#E1FFE1
+    style ExitApp fill:#FFB6C1
+    style DisplayList fill:#FFE4E1
+    style SelectRadio fill:#FFE4E1
+    style WarnEmpty fill:#FFE4E1
+    style SuccessAll fill:#E1FFE1
+    style DisplayFiltered fill:#E1F5FF
+    style DisplaySorted fill:#E1F5FF
+    style RefreshLaporan fill:#E1FFE1
 ```
 
 ## Database Schema Diagram

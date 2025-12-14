@@ -1,7 +1,8 @@
 # GUI module for the application
 import csv
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
+from typing import Optional
 from app.services import MahasiswaService, AbsensiService
 
 
@@ -24,9 +25,11 @@ class AplikasiAbsensi:
         self.tabs.add(self.tab2, text="Daftar Mahasiswa Baru")
         self.tabs.add(self.tab3, text="Rekap Laporan")
 
-        self.setup_tab_absensi()
-        self.setup_tab_daftar()
+        self.setup_tab_absensi_v2()
+        self.setup_tab_daftar_v2()
         self.setup_tab_laporan()
+
+        ttk.Button(self.root, text="Close App", command=self.root.destroy).pack(pady=5)
 
         self.load_laporan()
 
@@ -204,3 +207,243 @@ class AplikasiAbsensi:
                 messagebox.showinfo("Sukses", f"Data berhasil diexport ke {file_path}")
             except Exception as e:
                 messagebox.showerror("Error", f"Gagal export: {e}")
+
+    # New attendance tab (v2) with list + radio buttons
+    def setup_tab_absensi_v2(self):
+        # Setup improved attendance tab with list, search, sort, and radio buttons
+        self.absen_frame = ttk.Frame(self.tab1, padding=10)
+        self.absen_frame.pack(fill="both", expand=True)
+
+        # Top controls: search and sort
+        top_controls = ttk.Frame(self.absen_frame)
+        top_controls.pack(fill="x")
+
+        ttk.Label(top_controls, text="Cari Nama/NIM:").pack(side="left", padx=5)
+        self.absen_search = ttk.Entry(top_controls, width=20)
+        self.absen_search.pack(side="left")
+
+        ttk.Button(top_controls, text="Cari", command=self._absen_reload_filtered).pack(
+            side="left", padx=5
+        )
+
+        ttk.Label(top_controls, text="Sort:").pack(side="left", padx=10)
+        self.absen_sort = ttk.Combobox(
+            top_controls,
+            values=[
+                "NIM ASC",
+                "NIM DESC",
+                "Nama ASC",
+                "Nama DESC",
+                "Status ASC",
+                "Status DESC",
+            ],
+            width=12,
+        )
+        self.absen_sort.current(0)
+        self.absen_sort.pack(side="left")
+        self.absen_sort.bind(
+            "<<ComboboxSelected>>", lambda e: self._absen_reload_filtered()
+        )
+
+        ttk.Button(top_controls, text="Reset", command=self._absen_reset_filters).pack(
+            side="left", padx=5
+        )
+
+        # Scrollable list area
+        list_container = ttk.Frame(self.absen_frame)
+        list_container.pack(fill="both", expand=True, pady=10)
+
+        self.absen_canvas = tk.Canvas(list_container)
+        self.absen_scrollbar = ttk.Scrollbar(
+            list_container, orient="vertical", command=self.absen_canvas.yview
+        )
+        self.absen_rows_frame = ttk.Frame(self.absen_canvas)
+
+        self.absen_rows_frame.bind(
+            "<Configure>",
+            lambda e: self.absen_canvas.configure(
+                scrollregion=self.absen_canvas.bbox("all")
+            ),
+        )
+        self.absen_canvas.create_window(
+            (0, 0), window=self.absen_rows_frame, anchor="nw"
+        )
+        self.absen_canvas.configure(yscrollcommand=self.absen_scrollbar.set)
+
+        self.absen_canvas.pack(side="left", fill="both", expand=True)
+        self.absen_scrollbar.pack(side="right", fill="y")
+
+        # Bottom actions
+        bottom_actions = ttk.Frame(self.absen_frame)
+        bottom_actions.pack(fill="x", pady=5)
+
+        self.lbl_info = ttk.Label(
+            bottom_actions, text="Status default semua: Alfa", foreground="blue"
+        )
+        self.lbl_info.pack(side="left")
+
+        ttk.Button(
+            bottom_actions, text="Save/Submit Semua", command=self._absen_submit_all
+        ).pack(side="right")
+
+        # Internal state
+        self.status_vars = {}
+        self.displayed_rows = []
+
+        # Initial load
+        self._absen_load_rows()
+
+    def _absen_load_rows(
+        self,
+        keyword: Optional[str] = None,
+        sort_field: str = "nim",
+        sort_dir: str = "ASC",
+    ):
+        # Load mahasiswa list and build rows with radio buttons
+        for rf in getattr(self, "displayed_rows", []):
+            try:
+                rf.destroy()
+            except Exception:
+                pass
+        self.displayed_rows = []
+
+        rows = MahasiswaService.list_mahasiswa(keyword, sort_field, sort_dir)
+        # Header
+        header = ttk.Frame(self.absen_rows_frame)
+        ttk.Label(header, text="NIM", width=15).pack(side="left")
+        ttk.Label(header, text="Nama", width=25).pack(side="left")
+        ttk.Label(header, text="Status", width=40).pack(side="left")
+        header.pack(fill="x", pady=2)
+        self.displayed_rows.append(header)
+
+        for nim, nama, jur in rows:
+            var = self.status_vars.get(nim)
+            if not var:
+                var = tk.StringVar(value="Alfa")
+                self.status_vars[nim] = var
+
+            rf = ttk.Frame(self.absen_rows_frame)
+            ttk.Label(rf, text=nim, width=15).pack(side="left")
+            ttk.Label(rf, text=nama, width=25).pack(side="left")
+
+            status_frame = ttk.Frame(rf)
+            status_frame.pack(side="left")
+            for st in ["Alfa", "Hadir", "Izin", "Sakit"]:
+                ttk.Radiobutton(status_frame, text=st, value=st, variable=var).pack(
+                    side="left", padx=2
+                )
+
+            rf.pack(fill="x", pady=2)
+            self.displayed_rows.append(rf)
+
+        # Sort by status if selected
+        sel = self.absen_sort.get()
+        if sel.startswith("Status"):
+            reverse = sel.endswith("DESC")
+            body_rows = self.displayed_rows[1:]
+            body_sorted = sorted(
+                body_rows,
+                key=lambda fr: self.status_vars[
+                    fr.winfo_children()[0].cget("text")
+                ].get(),
+                reverse=reverse,
+            )
+            for fr in body_sorted:
+                fr.pack_forget()
+            for fr in body_sorted:
+                fr.pack(fill="x", pady=2)
+
+    def _absen_reset_filters(self):
+        # Reset search and sort
+        self.absen_search.delete(0, "end")
+        self.absen_sort.current(0)
+        self._absen_reload_filtered()
+
+    def _absen_reload_filtered(self):
+        # Reload rows based on search and sort
+        keyword = self.absen_search.get().strip() or None
+        sel = self.absen_sort.get()
+        if sel.startswith("NIM"):
+            sort_field = "nim"
+            sort_dir = "DESC" if sel.endswith("DESC") else "ASC"
+        elif sel.startswith("Nama"):
+            sort_field = "nama"
+            sort_dir = "DESC" if sel.endswith("DESC") else "ASC"
+        else:
+            sort_field = "nim"
+            sort_dir = "ASC"
+        self._absen_load_rows(keyword, sort_field, sort_dir)
+
+    def _absen_submit_all(self):
+        # Submit statuses for all displayed students
+        status_map = {}
+        for fr in self.displayed_rows[1:]:
+            nim_label = fr.winfo_children()[0]
+            nim = nim_label.cget("text")
+            status_map[nim] = self.status_vars[nim].get()
+
+        if not status_map:
+            messagebox.showwarning("Kosong", "Tidak ada mahasiswa untuk disubmit.")
+            return
+
+        count = AbsensiService.apply_statuses_for_today(status_map)
+        self.lbl_info.config(text=f"Sukses submit {count} status.", foreground="green")
+        self.load_laporan()
+
+    # Registration tab v2 with delete section
+    def setup_tab_daftar_v2(self):
+        # Setup student registration + deletion controls
+        frame = ttk.Frame(self.tab2, padding=20)
+        frame.pack()
+
+        ttk.Label(frame, text="NIM:").pack(anchor="w")
+        self.ent_reg_nim = ttk.Entry(frame, width=30)
+        self.ent_reg_nim.pack(pady=5)
+
+        ttk.Label(frame, text="Nama Lengkap:").pack(anchor="w")
+        self.ent_reg_nama = ttk.Entry(frame, width=30)
+        self.ent_reg_nama.pack(pady=5)
+
+        ttk.Label(frame, text="Jurusan/Kelas:").pack(anchor="w")
+        self.ent_reg_jurusan = ttk.Entry(frame, width=30)
+        self.ent_reg_jurusan.pack(pady=5)
+
+        ttk.Button(
+            frame, text="Simpan Data Mahasiswa", command=self.proses_daftar
+        ).pack(pady=20)
+
+        sep = ttk.Separator(self.tab2, orient="horizontal")
+        sep.pack(fill="x", pady=10)
+
+        del_frame = ttk.Frame(self.tab2, padding=10)
+        del_frame.pack(fill="x")
+        ttk.Label(del_frame, text="Hapus Mahasiswa (masukkan NIM):").pack(anchor="w")
+        self.ent_del_nim = ttk.Entry(del_frame, width=30)
+        self.ent_del_nim.pack(pady=5)
+        ttk.Button(
+            del_frame, text="Delete Mahasiswa", command=self.proses_delete_mahasiswa
+        ).pack(pady=5)
+
+    def proses_delete_mahasiswa(self):
+        # Process delete mahasiswa with confirmation by re-entering NIM
+        nim = getattr(self, "ent_del_nim", None)
+        nim = nim.get().strip() if nim else ""
+        if not nim:
+            messagebox.showwarning("Peringatan", "Masukkan NIM yang akan dihapus.")
+            return
+
+        confirm = simpledialog.askstring(
+            "Konfirmasi", "Ketik ulang NIM untuk konfirmasi hapus:"
+        )
+        if confirm is None:
+            return
+        if confirm.strip() != nim:
+            messagebox.showerror("Error", "NIM konfirmasi tidak cocok.")
+            return
+
+        if MahasiswaService.delete_mahasiswa(nim):
+            messagebox.showinfo("Sukses", f"Mahasiswa NIM {nim} berhasil dihapus.")
+            self.ent_del_nim.delete(0, "end")
+            self._absen_reload_filtered()
+        else:
+            messagebox.showerror("Error", "NIM tidak ditemukan atau gagal dihapus.")

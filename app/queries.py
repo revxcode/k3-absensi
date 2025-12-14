@@ -30,6 +30,44 @@ class MahasiswaQueries:
         conn.close()
         return data
 
+    @staticmethod
+    def list_mahasiswa(
+        keyword: Optional[str] = None, order_by: str = "nim", order_dir: str = "ASC"
+    ) -> List[Tuple]:
+        # List mahasiswa with optional search and sorting
+        # Allowed order_by: nim, nama, jurusan; order_dir: ASC/DESC
+        allowed_cols = {"nim", "nama", "jurusan"}
+        allowed_dir = {"ASC", "DESC"}
+        col = order_by if order_by in allowed_cols else "nim"
+        dir_ = order_dir if order_dir in allowed_dir else "ASC"
+
+        conn = Database.get_connection()
+        cursor = conn.cursor()
+        base = "SELECT nim, nama, jurusan FROM mahasiswa"
+        params: Tuple = ()
+        if keyword:
+            base += " WHERE nama LIKE ? OR nim LIKE ?"
+            like = f"%{keyword}%"
+            params = (like, like)
+        base += f" ORDER BY {col} {dir_}"
+        cursor.execute(base, params)
+        rows = cursor.fetchall()
+        conn.close()
+        return rows
+
+    @staticmethod
+    def delete_mahasiswa(nim: str) -> bool:
+        # Delete mahasiswa and their absensi records
+        conn = Database.get_connection()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("DELETE FROM absensi WHERE nim=?", (nim,))
+            cursor.execute("DELETE FROM mahasiswa WHERE nim=?", (nim,))
+            conn.commit()
+            return cursor.rowcount > 0
+        finally:
+            conn.close()
+
 
 class AbsensiQueries:
     # Database queries for Absensi table
@@ -91,3 +129,25 @@ class AbsensiQueries:
         rows = cursor.fetchall()
         conn.close()
         return rows
+
+    @staticmethod
+    def update_absensi_status(
+        nim: str, tanggal: str, keterangan: str, waktu: str
+    ) -> None:
+        # Update existing absensi record for a date
+        conn = Database.get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE absensi SET keterangan=?, waktu=? WHERE nim=? AND tanggal=?",
+            (keterangan, waktu, nim, tanggal),
+        )
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def upsert_absensi(nim: str, tanggal: str, waktu: str, keterangan: str) -> None:
+        # Insert or update absensi for a given student and date
+        if AbsensiQueries.check_existing_absensi(nim, tanggal):
+            AbsensiQueries.update_absensi_status(nim, tanggal, keterangan, waktu)
+        else:
+            AbsensiQueries.insert_absensi(nim, tanggal, waktu, keterangan)
