@@ -54,87 +54,7 @@ flowchart TD
     style ViewReport fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
     style Close fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
 ```
-## Database Schema Diagram
 
-```mermaid
-erDiagram
-    MAHASISWA ||--o{ ABSENSI : memiliki
-    MAHASISWA {
-        string nim PK
-        string nama
-        string jurusan
-    }
-    ABSENSI {
-        int id PK
-        string nim FK
-        date tanggal
-        time waktu
-        string status
-    }
-```
-
-## Module Architecture
-
-```mermaid
-flowchart TB
-    Main[main.py]
-    GUI[gui.py]
-    Service[service.py]
-    Query[query.py]
-    DB[(SQLite)]
-    
-    Main --> GUI
-    Main --> Service
-    GUI --> Service
-    Service --> Query
-    Query --> DB
-    
-    style Main fill:#4CAF50,color:#fff
-    style GUI fill:#2196F3,color:#fff
-    style Service fill:#FF9800,color:#fff
-    style Query fill:#9C27B0,color:#fff
-    style DB fill:#F44336,color:#fff
-```
-
-## Class Diagram
-
-```mermaid
-classDiagram
-    class Database {
-        +connect()
-        +execute()
-    }
-    
-    class MahasiswaQuery {
-        +insert()
-        +getAll()
-        +delete()
-    }
-    
-    class AbsensiQuery {
-        +insert()
-        +getAll()
-        +search()
-    }
-    
-    class AbsensiService {
-        +proses_absensi()
-        +cari_absensi()
-        +export_csv()
-    }
-    
-    class GUI {
-        +tab_absensi()
-        +tab_mahasiswa()
-        +tab_laporan()
-    }
-    
-    GUI --> AbsensiService
-    AbsensiService --> MahasiswaQuery
-    AbsensiService --> AbsensiQuery
-    MahasiswaQuery --> Database
-    AbsensiQuery --> Database
-```
 
 ## Database Schema Diagram
 
@@ -277,6 +197,9 @@ sequenceDiagram
         end
     end
 ```
+
+## Data Flow Diagram
+
 ```mermaid
 flowchart LR
     User[User Input] --> GUI[GUI Layer]
@@ -289,11 +212,10 @@ flowchart LR
     Service --> GUI
     GUI --> Display[Display to User]
     
-    style User fill:#e1f5ff,stroke:#2196F3,stroke-width:2px
-    style GUI fill:#fff4e1,stroke:#FF9800,stroke-width:2px
-    style Service fill:#ffe1f5,stroke:#9C27B0,stroke-width:2px
-    style Query fill:#e1ffe1,stroke:#4CAF50,stroke-width:2px
-    style DB fill:#f5e1ff,stroke:#F44336,stroke-width:2px
-    style Display fill:#e1f5ff,stroke:#2196F3,stroke-width:2px
-    style User, GUI, Service, Query, DB, Display color:#000
+    style User fill:#2196F3,stroke:#1565C0,stroke-width:2px,color:#fff
+    style GUI fill:#FF9800,stroke:#E65100,stroke-width:2px,color:#fff
+    style Service fill:#9C27B0,stroke:#6A1B9A,stroke-width:2px,color:#fff
+    style Query fill:#4CAF50,stroke:#2E7D32,stroke-width:2px,color:#fff
+    style DB fill:#F44336,stroke:#C62828,stroke-width:2px,color:#fff
+    style Display fill:#00BCD4,stroke:#00838F,stroke-width:2px,color:#fff
 ```
