@@ -1,24 +1,20 @@
-"""
-Database connection and initialization module
-"""
-
+# Database connection and initialization module
 import sqlite3
 from typing import Optional
 
 
 class Database:
-    """Database connection manager"""
-
+    # Database connection manager
     DB_NAME = "absensi_kelompok3.db"
 
     @staticmethod
     def get_connection() -> sqlite3.Connection:
-        """Get database connection"""
+        # Get database connection
         return sqlite3.connect(Database.DB_NAME)
 
     @staticmethod
     def init_db() -> None:
-        """Initialize database tables if they don't exist"""
+        # Initialize database tables if they don't exist
         conn = Database.get_connection()
         cursor = conn.cursor()
 

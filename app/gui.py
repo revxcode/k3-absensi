@@ -1,7 +1,4 @@
-"""
-GUI module for the application
-"""
-
+# GUI module for the application
 import csv
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
@@ -9,8 +6,7 @@ from app.services import MahasiswaService, AbsensiService
 
 
 class AplikasiAbsensi:
-    """Main application GUI"""
-
+    # Main application GUI
     def __init__(self, root):
         self.root = root
         self.root.title("Aplikasi Absensi - Kelompok 3")
@@ -35,7 +31,7 @@ class AplikasiAbsensi:
         self.load_laporan()
 
     def setup_tab_absensi(self):
-        """Setup attendance tab"""
+        # Setup attendance tab
         frame = ttk.Frame(self.tab1, padding=20)
         frame.pack()
 
@@ -62,7 +58,7 @@ class AplikasiAbsensi:
         self.lbl_info.pack()
 
     def setup_tab_daftar(self):
-        """Setup student registration tab"""
+        # Setup student registration tab
         frame = ttk.Frame(self.tab2, padding=20)
         frame.pack()
 
@@ -83,7 +79,7 @@ class AplikasiAbsensi:
         ).pack(pady=20)
 
     def setup_tab_laporan(self):
-        """Setup report tab"""
+        # Setup report tab
         frame_cari = ttk.Frame(self.tab3)
         frame_cari.pack(pady=5)
 
@@ -115,7 +111,7 @@ class AplikasiAbsensi:
         btn_export.pack(pady=5)
 
     def proses_daftar(self):
-        """Process student registration"""
+        # Process student registration
         nim = self.ent_reg_nim.get()
         nama = self.ent_reg_nama.get()
         jurusan = self.ent_reg_jurusan.get()
@@ -133,7 +129,7 @@ class AplikasiAbsensi:
             messagebox.showwarning("Peringatan", "NIM dan Nama harus diisi!")
 
     def proses_absen(self):
-        """Process attendance submission"""
+        # Process attendance submission
         nim = self.entry_nim_absen.get()
         keterangan = self.combo_status.get()
 
@@ -163,7 +159,7 @@ class AplikasiAbsensi:
             self.lbl_info.config(text="Masukkan NIM terlebih dahulu.", foreground="red")
 
     def proses_cari(self):
-        """Process search"""
+        # Process search
         keyword = self.ent_cari.get()
 
         # Clear table
@@ -176,7 +172,7 @@ class AplikasiAbsensi:
             self.tree.insert("", "end", values=row)
 
     def load_laporan(self):
-        """Load all records into table"""
+        # Load all records into table
         # Clear old data
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -187,7 +183,7 @@ class AplikasiAbsensi:
             self.tree.insert("", "end", values=row)
 
     def export_ke_csv(self):
-        """Export data to CSV file"""
+        # Export data to CSV file
         rows = AbsensiService.get_all_records()
 
         if not rows:

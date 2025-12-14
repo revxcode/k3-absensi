@@ -1,36 +1,23 @@
-"""
-Business logic services for the application
-"""
-
+# Business logic services for the application
 from datetime import datetime
 from typing import Tuple, List
 from app.queries import MahasiswaQueries, AbsensiQueries
 
 
 class MahasiswaService:
-    """Service layer for Mahasiswa operations"""
-
+    # Service layer for Mahasiswa operations
     @staticmethod
     def register_mahasiswa(nim: str, nama: str, jurusan: str) -> bool:
-        """
-        Register a new mahasiswa
-        Returns True if successful, False if NIM already exists
-        """
+        # Register a new mahasiswa, returns True if successful, False if NIM already exists
         return MahasiswaQueries.insert_mahasiswa(nim, nama, jurusan)
 
 
 class AbsensiService:
-    """Service layer for Absensi operations"""
-
+    # Service layer for Absensi operations
     @staticmethod
     def submit_absensi(nim: str, keterangan: str) -> Tuple[str, str]:
-        """
-        Submit absensi for a student
-        Returns: (status, nama) where status can be:
-            - "SUKSES": Successfully recorded
-            - "SUDAH_ABSEN": Already has absensi for today
-            - "NIM_TIDAK_ADA": NIM not found in database
-        """
+        # Submit absensi for a student
+        # Returns: (status, nama) where status = SUKSES, SUDAH_ABSEN, or NIM_TIDAK_ADA
         # Check if NIM exists
         data = MahasiswaQueries.get_mahasiswa_by_nim(nim)
 
@@ -52,10 +39,10 @@ class AbsensiService:
 
     @staticmethod
     def get_all_records() -> List[Tuple]:
-        """Get all absensi records"""
+        # Get all absensi records
         return AbsensiQueries.get_all_absensi()
 
     @staticmethod
     def search_records(keyword: str) -> List[Tuple]:
-        """Search absensi records by keyword"""
+        # Search absensi records by keyword
         return AbsensiQueries.search_absensi(keyword)

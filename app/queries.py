@@ -1,20 +1,13 @@
-"""
-SQL Queries module for database operations
-"""
-
+# SQL Queries module for database operations
 from typing import List, Tuple, Optional
 from app.database import Database
 
 
 class MahasiswaQueries:
-    """Database queries for Mahasiswa table"""
-
+    # Database queries for Mahasiswa table
     @staticmethod
     def insert_mahasiswa(nim: str, nama: str, jurusan: str) -> bool:
-        """
-        Insert new mahasiswa record
-        Returns True if successful, False if NIM already exists
-        """
+        # Insert new mahasiswa record, returns True if successful, False if NIM already exists
         try:
             conn = Database.get_connection()
             cursor = conn.cursor()
@@ -29,7 +22,7 @@ class MahasiswaQueries:
 
     @staticmethod
     def get_mahasiswa_by_nim(nim: str) -> Optional[Tuple]:
-        """Get mahasiswa data by NIM"""
+        # Get mahasiswa data by NIM
         conn = Database.get_connection()
         cursor = conn.cursor()
         cursor.execute("SELECT nama FROM mahasiswa WHERE nim=?", (nim,))
@@ -39,11 +32,10 @@ class MahasiswaQueries:
 
 
 class AbsensiQueries:
-    """Database queries for Absensi table"""
-
+    # Database queries for Absensi table
     @staticmethod
     def insert_absensi(nim: str, tanggal: str, waktu: str, keterangan: str) -> None:
-        """Insert new absensi record"""
+        # Insert new absensi record
         conn = Database.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -55,7 +47,7 @@ class AbsensiQueries:
 
     @staticmethod
     def check_existing_absensi(nim: str, tanggal: str) -> bool:
-        """Check if student already has absensi record for the date"""
+        # Check if student already has absensi record for the date
         conn = Database.get_connection()
         cursor = conn.cursor()
         cursor.execute(
@@ -67,7 +59,7 @@ class AbsensiQueries:
 
     @staticmethod
     def get_all_absensi() -> List[Tuple]:
-        """Get all absensi records with student names"""
+        # Get all absensi records with student names
         conn = Database.get_connection()
         cursor = conn.cursor()
         query = """
@@ -84,7 +76,7 @@ class AbsensiQueries:
 
     @staticmethod
     def search_absensi(keyword: str) -> List[Tuple]:
-        """Search absensi records by name or NIM"""
+        # Search absensi records by name or NIM
         conn = Database.get_connection()
         cursor = conn.cursor()
         query = """

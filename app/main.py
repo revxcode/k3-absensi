@@ -1,15 +1,12 @@
-"""
-Aplikasi Absensi - Kelompok 3
-Main entry point for the application
-"""
-
+# Aplikasi Absensi - Kelompok 3
+# Main entry point for the application
 import tkinter as tk
 from app.database import Database
 from app.gui import AplikasiAbsensi
 
 
 def main():
-    """Main function to run the application"""
+    # Main function to run the application
     # Initialize database
     Database.init_db()
 
