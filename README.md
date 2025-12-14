@@ -2,6 +2,10 @@
 
 Aplikasi desktop untuk manajemen absensi mahasiswa dengan antarmuka modern menggunakan CustomTkinter, database SQLite, dan fitur-fitur canggih seperti realtime search, sorting, export CSV, dan visual status highlighting.
 
+![Aplikasi Absensi Interface](image.png)
+
+*Tampilan aplikasi dengan color-coded status highlighting: Alfa (merah), Hadir (hijau), Izin (teal), Sakit (orange)*
+
 ## Fitur Utama
 
 ### 📝 Tab: Isi Kehadiran
