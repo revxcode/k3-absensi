@@ -22,6 +22,9 @@ class AplikasiAbsensiModern:
         self.root.geometry("1000x700")
         self.root.resizable(True, True)
 
+        # Track unsaved changes (e.g., status changes not yet submitted)
+        self._unsaved_changes = False
+
         # Set modern theme
         ctk.set_appearance_mode("dark")
         ctk.set_default_color_theme("blue")
@@ -63,12 +66,18 @@ class AplikasiAbsensiModern:
         close_btn = ctk.CTkButton(
             footer,
             text="❌ Close App",
-            command=self.root.destroy,
+            command=self._on_close,
             fg_color=CTK_ERROR_COLOR,
             hover_color="#C0392B",
             font=("Segoe UI", 12, "bold"),
         )
         close_btn.pack(side="right", padx=5)
+
+        # Intercept window close button (X) to confirm when there are unsaved changes
+        try:
+            self.root.protocol("WM_DELETE_WINDOW", self._on_close)
+        except Exception:
+            pass
 
         self.load_laporan()
 
@@ -83,7 +92,7 @@ class AplikasiAbsensiModern:
         # Search
         search_label = ctk.CTkLabel(
             filter_frame,
-            text="🔍 Cari Nama/NIM:",
+            text="Cari Nama/NIM:",
             text_color=CTK_FG_COLOR,
             font=("Segoe UI", 11, "bold"),
         )
@@ -96,16 +105,9 @@ class AplikasiAbsensiModern:
             corner_radius=8,
         )
         self.absen_search.pack(side="left", padx=5, pady=8)
-
-        search_btn = ctk.CTkButton(
-            filter_frame,
-            text="Cari",
-            command=self._absen_reload_filtered,
-            width=70,
-            fg_color=CTK_BUTTON_COLOR,
-            hover_color=CTK_BUTTON_HOVER,
-        )
-        search_btn.pack(side="left", padx=5, pady=8)
+        # Debounced realtime search
+        self._absen_search_after_id = None
+        self.absen_search.bind("<KeyRelease>", self._on_absen_search_keyup)
 
         # Sort
         sort_label = ctk.CTkLabel(
@@ -160,6 +162,7 @@ class AplikasiAbsensiModern:
         self.status_vars = {}
         self.displayed_rows = []
         self.absen_rows_frame = self.absen_scrollable
+        self._row_frames_by_nim = {}
 
         # Bottom action frame
         action_frame = ctk.CTkFrame(self.tab1, fg_color="#34495E", corner_radius=10)
@@ -247,6 +250,8 @@ class AplikasiAbsensiModern:
                 corner_radius=6,
             )
             row_frame.pack(fill="x", padx=5, pady=3)
+            # Track row frame by nim for highlighting
+            self._row_frames_by_nim[nim] = row_frame
 
             nim_label = ctk.CTkLabel(
                 row_frame,
@@ -277,10 +282,22 @@ class AplikasiAbsensiModern:
                     value=st,
                     font=("Segoe UI", 10),
                     width=80,
+                    command=self._mark_unsaved,
                 )
                 rb.pack(side="left", padx=3)
 
             self.displayed_rows.append(row_frame)
+
+            # Update highlighting when status changes
+            def _on_status_change(*_args, _nim=nim, _var=var):
+                self._update_row_style(_nim, _var.get())
+
+            try:
+                var.trace_add("write", _on_status_change)
+            except Exception:
+                pass
+            # Initial style
+            self._update_row_style(nim, var.get())
 
         # Sort by status
         sel = self.absen_sort.get()
@@ -296,10 +313,37 @@ class AplikasiAbsensiModern:
             for _, fr in body_sorted:
                 fr.pack(fill="x", padx=5, pady=3)
 
+    def _update_row_style(self, nim: str, status: str):
+        """Highlight row frame based on status value."""
+        frame = self._row_frames_by_nim.get(nim)
+        if not frame:
+            return
+        color_map = {
+            "Alfa": "#7B1E1E",  # dark red
+            "Hadir": "#1B5E20",  # dark green
+            "Izin": "#006064",  # teal
+            "Sakit": "#E67E22",  # orange
+        }
+        fg = color_map.get(status, "#34495E")
+        try:
+            frame.configure(fg_color=fg)
+        except Exception:
+            pass
+
     def _absen_reset_filters(self):
         self.absen_search.delete(0, "end")
         self.absen_sort.set("NIM ASC")
         self._absen_reload_filtered()
+
+    def _on_absen_search_keyup(self, event=None):
+        # Debounce user typing to avoid excessive reloads
+        if self._absen_search_after_id:
+            try:
+                self.root.after_cancel(self._absen_search_after_id)
+            except Exception:
+                pass
+        # 300ms debounce
+        self._absen_search_after_id = self.root.after(300, self._absen_reload_filtered)
 
     def _absen_reload_filtered(self):
         keyword = self.absen_search.get().strip() or None
@@ -313,6 +357,10 @@ class AplikasiAbsensiModern:
         else:
             sort_field = "nim"
             sort_dir = "ASC"
+        # FE/BE interaction log
+        print(
+            f"[FE] Reload daftar mahasiswa keyword={keyword} sort={sort_field} {sort_dir}"
+        )
         self._absen_load_rows(keyword, sort_field, sort_dir)
 
     def _absen_submit_all(self):
@@ -324,11 +372,34 @@ class AplikasiAbsensiModern:
             messagebox.showwarning("Kosong", "Tidak ada mahasiswa untuk disubmit.")
             return
 
+        print("[FE] Submit semua status ...")
         count = AbsensiService.apply_statuses_for_today(status_map)
+        print(f"[BE] Tersimpan {count} baris status hari ini")
         self.lbl_info.configure(
             text=f"✓ Sukses submit {count} status.", text_color=CTK_SUCCESS_COLOR
         )
         self.load_laporan()
+        # Mark as saved
+        self._unsaved_changes = False
+
+    def _mark_unsaved(self):
+        # Mark that there are changes not yet submitted
+        self._unsaved_changes = True
+
+    def _on_close(self):
+        """Confirm before closing the app if there are unsaved changes."""
+        if self._unsaved_changes:
+            should_close = messagebox.askyesno(
+                "Konfirmasi Keluar",
+                "Ada perubahan status yang belum disimpan.\nApakah Anda yakin ingin keluar?",
+            )
+            if not should_close:
+                return
+        # Proceed to destroy the window
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
 
     def setup_tab_daftar_modern(self):
         # Modern registration & deletion tab
@@ -496,7 +567,7 @@ class AplikasiAbsensiModern:
 
         ctk.CTkLabel(
             search_frame,
-            text="🔍 Cari Laporan:",
+            text="Cari Laporan:",
             text_color=CTK_FG_COLOR,
             font=("Segoe UI", 11, "bold"),
         ).pack(side="left", padx=10, pady=8)
@@ -509,15 +580,9 @@ class AplikasiAbsensiModern:
         )
         self.ent_cari.pack(side="left", padx=5, pady=8)
 
-        search_btn = ctk.CTkButton(
-            search_frame,
-            text="Cari",
-            command=self.proses_cari,
-            width=70,
-            fg_color=CTK_BUTTON_COLOR,
-            hover_color=CTK_BUTTON_HOVER,
-        )
-        search_btn.pack(side="left", padx=5, pady=8)
+        # Debounced realtime search on laporan
+        self._laporan_search_after_id = None
+        self.ent_cari.bind("<KeyRelease>", self._on_laporan_search_keyup)
 
         refresh_btn = ctk.CTkButton(
             search_frame,
@@ -531,13 +596,32 @@ class AplikasiAbsensiModern:
 
         export_btn = ctk.CTkButton(
             search_frame,
-            text="📥 Export CSV",
+            text="Export CSV",
             command=self.export_ke_csv,
             width=100,
             fg_color=CTK_SUCCESS_COLOR,
             hover_color="#229954",
         )
         export_btn.pack(side="right", padx=5, pady=8)
+
+        # Filter frame (Tanggal: Hari ini / Semua)
+        filter2_frame = ctk.CTkFrame(self.tab3, fg_color="#34495E", corner_radius=10)
+        filter2_frame.pack(fill="x", padx=10, pady=(0, 10))
+        ctk.CTkLabel(
+            filter2_frame,
+            text="Filter Tanggal:",
+            text_color=CTK_FG_COLOR,
+            font=("Segoe UI", 11, "bold"),
+        ).pack(side="left", padx=10, pady=8)
+        self.cb_tanggal = ctk.CTkComboBox(
+            filter2_frame,
+            values=["Hari ini", "Semua"],
+            width=120,
+            corner_radius=8,
+            command=lambda _: self._apply_laporan_filters(),
+        )
+        self.cb_tanggal.set("Semua")
+        self.cb_tanggal.pack(side="left", padx=5, pady=8)
 
         # Table section
         table_frame = ctk.CTkFrame(self.tab3, fg_color=CTK_BG_COLOR)
@@ -561,13 +645,16 @@ class AplikasiAbsensiModern:
         )
         style.map("Treeview", background=[("selected", "#3498DB")])
 
-        columns = ("Tanggal", "Jam", "NIM", "Nama", "Ket")
+        columns = ("Tanggal", "Jam", "NIM", "Nama", "Keterangan")
         self.tree = ttk.Treeview(
             table_frame, columns=columns, show="headings", height=20
         )
 
+        # Enable sort by clicking headers
         for col in columns:
-            self.tree.heading(col, text=col)
+            self.tree.heading(
+                col, text=col, command=lambda c=col: self._sort_treeview(c, False)
+            )
             self.tree.column(col, width=150)
 
         scrollbar = ttk.Scrollbar(
@@ -579,23 +666,47 @@ class AplikasiAbsensiModern:
         scrollbar.pack(side="right", fill="y")
         self.tree.configure(yscrollcommand=scrollbar.set)
 
-    def proses_cari(self):
-        keyword = self.ent_cari.get().strip()
-        for item in self.tree.get_children():
-            self.tree.delete(item)
+    def _on_laporan_search_keyup(self, event=None):
+        if self._laporan_search_after_id:
+            try:
+                self.root.after_cancel(self._laporan_search_after_id)
+            except Exception:
+                pass
+        self._laporan_search_after_id = self.root.after(
+            300, self._refresh_laporan_with_filters
+        )
 
+    def _apply_laporan_filters(self):
+        self._refresh_laporan_with_filters()
+
+    def _refresh_laporan_with_filters(self):
+        keyword = self.ent_cari.get().strip()
+        tanggal_filter = self.cb_tanggal.get()
+        print(f"[FE] Refresh laporan keyword='{keyword}' filter='{tanggal_filter}'")
+        # Fetch rows
         rows = (
             AbsensiService.search_records(keyword)
             if keyword
             else AbsensiService.get_all_records()
         )
+        # Apply date filter if needed (expects rows with date at index 0)
+        import datetime
+
+        today_str = datetime.date.today().isoformat()
+        if tanggal_filter == "Hari ini":
+            rows = [r for r in rows if str(r[0]) == today_str]
+        # Clear and refill
+        for item in self.tree.get_children():
+            self.tree.delete(item)
         for row in rows:
             self.tree.insert("", "end", values=row)
 
     def load_laporan(self):
+        print("[FE] Load laporan awal")
         for item in self.tree.get_children():
             self.tree.delete(item)
         rows = AbsensiService.get_all_records()
+        print(f"[BE] Ambil {len(rows)} baris laporan")
         for row in rows:
             self.tree.insert("", "end", values=row)
 
@@ -619,5 +730,20 @@ class AplikasiAbsensiModern:
                 messagebox.showinfo(
                     "✓ Sukses", f"Data berhasil diexport ke {file_path}"
                 )
+                print(f"[BE] Export CSV sukses -> {file_path}")
             except Exception as e:
                 messagebox.showerror("❌ Error", f"Gagal export: {e}")
+                print(f"[BE] Export CSV gagal: {e}")
+
+    # Utilities: sort Treeview by column
+    def _sort_treeview(self, col, reverse):
+        # Get data
+        l = [(self.tree.set(k, col), k) for k in self.tree.get_children("")]
+        # Always sort by string representation to avoid type issues
+        l.sort(key=lambda x: str(x[0]).lower(), reverse=reverse)
+        for index, (val, k) in enumerate(l):
+            self.tree.move(k, "", index)
+        # Toggle sort order
+        self.tree.heading(
+            col, command=lambda c=col: self._sort_treeview(c, not reverse)
+        )
